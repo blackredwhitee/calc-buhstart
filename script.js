@@ -888,7 +888,7 @@ function _fmt(n) { return new Intl.NumberFormat('ru-RU').format(Math.round(n||0)
 async function buildKPDocx(ex, client, services, total, kpNum) {
   const d = _d();
   const W_A4=11906, MRG=850, W=W_A4-MRG*2, HW=Math.floor(W/2);
-  const validDate = new Date(); validDate.setDate(validDate.getDate()+30);
+  const validDate = new Date(); validDate.setDate(validDate.getDate()+(Number(A.kpValidDays)||14));
   const valid_s = validDate.toLocaleDateString('ru-RU',{day:'2-digit',month:'long',year:'numeric'});
 
   let logoData = null;
@@ -938,6 +938,16 @@ async function buildKPDocx(ex, client, services, total, kpNum) {
           _cell('Стоимость',            { w:1526, bold:true, bg:'2563EB', color:'FFFFFF', align:d.AlignmentType.RIGHT }),
         ]),
         ...svcRows,
+        ...(Number(A.discount)>0 ? [
+          _row([
+            new d.TableCell({
+              children:[new d.Paragraph({children:[_r('Скидка '+A.discount+'%',{italics:true})],alignment:d.AlignmentType.RIGHT,spacing:{before:60,after:60}})],
+              columnSpan:2, borders:{top:NONE,bottom:NONE,left:THIN,right:NONE},
+              margins:{top:60,bottom:60,left:120,right:120},
+            }),
+            _cell('−'+_fmt(Math.round(total/(1-Number(A.discount)/100)*Number(A.discount)/100))+' ₽', { w:1526, italics:true, align:d.AlignmentType.RIGHT, borders:{top:NONE,bottom:NONE,left:NONE,right:DARK} }),
+          ])
+        ] : []),
         _row([
           new d.TableCell({
             children:[new d.Paragraph({children:[_r('Итого, в месяц, НДС не облагается',{bold:true})],alignment:d.AlignmentType.RIGHT,spacing:{before:80,after:80}})],
