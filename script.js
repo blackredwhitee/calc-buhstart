@@ -87,7 +87,7 @@ const EXECUTORS = [
 ];
 
 // ─── URL Google Apps Script (заменить после деплоя) ──
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzqIv47O1OwRNSXbu-sFSsYhJYZEIzyCEne00x9QnAThE8SJ8B106eVrR9ztWK0aY-M/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw1Vzwi4U1e46Egq9B6vqBNvkMvthiFvQZCppmMnePx5CAjtn3dwRSPYvyHDcNXWX_m/exec';
 
 // Текущее юрлицо — по умолчанию первое
 let EX = Object.assign({}, EXECUTORS[0]);
