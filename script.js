@@ -651,13 +651,13 @@ function downloadInvoice() {
   if (!lastInvoice) lastInvoice = { invNum: nextNum('СЧ') };
   const invNum = lastInvoice.invNum;
   buildInvoiceDocx(EX, {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||''}, lastKP.lines, lastKP.total, invNum)
-    .then(b => { downloadBlob(b, `Счёт_${safeF(A.name)}_${todayFile()}.docx`); showToast('Счёт скачивается'); })
+    .then(b => { downloadBlob(b, `Счёт_${safeF(A.name)}_${todayFile()}.docx`); showToast('Счёт скачивается'); saveToCloud(); })
     .catch(e => { console.error('Invoice docx error:', e); showToast('Ошибка формирования файла'); });
 }
 function downloadContract() {
   if (!lastContract) { showToast('Договор не сформирован'); return; }
   buildContractDocx(EX, {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||'',ogrn:A.req.ogrn||'',ogrnip:A.req.ogrn||'',director:A.req.director||''}, lastKP.lines, lastKP.total, lastContract.cNum)
-    .then(b => { downloadBlob(b, `Договор_${safeF(A.name)}_${todayFile()}.docx`); showToast('Договор скачивается'); })
+    .then(b => { downloadBlob(b, `Договор_${safeF(A.name)}_${todayFile()}.docx`); showToast('Договор скачивается'); saveToCloud(); })
     .catch(e => { console.error('Contract docx error:', e); showToast('Ошибка формирования файла'); });
 }
 
