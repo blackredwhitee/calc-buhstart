@@ -27,7 +27,7 @@ body{font-family:var(--fb);background:#e8e6e1;color:var(--gray-800);line-height:
 .btn-hero:hover{background:var(--or-700);transform:translateY(-2px);box-shadow:0 8px 28px rgba(227,86,17,.4)}
 
 /* QUIZ */
-.quiz-wrap{max-width:700px;margin:0 auto;padding:0 20px 80px;position:relative;z-index:2;min-height:100vh;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box}
+.quiz-wrap{max-width:700px;margin:0 auto;padding:0 20px 80px;position:relative;z-index:2;padding-top:max(40px,calc(50vh - 320px))}
 .quiz-progress{background:var(--white);border-radius:var(--r-xl) var(--r-xl) 0 0;padding:24px 28px 0;box-shadow:0 -4px 24px rgba(0,0,0,.08)}
 .quiz-progress-inner{display:flex;flex-direction:column;gap:8px}
 .step-label{font-size:13px;font-weight:600;color:var(--gray-500)}
