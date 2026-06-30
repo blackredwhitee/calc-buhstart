@@ -1205,7 +1205,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Enter
   document.addEventListener('keydown', function(e) {
     if (e.key==='Enter' && step < STEPS) goNext();
-    if (e.key==='Enter' && step === STEPS) generateKP();
+    else if (e.key==='Enter' && step === STEPS) generateKP();
   });
   // Показываем первый шаг
   showStep(1);
