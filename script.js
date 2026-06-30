@@ -1254,9 +1254,12 @@ async function saveToCloud() {
   };
 
   try {
+    console.log('[saveToCloud] старт, payload:', JSON.stringify(payload).slice(0, 200));
+
     var kpBlob = await buildKPDocx(EX, {name:A.name, inn:A.req.inn, director:A.director}, lastKP.lines, lastKP.total, lastKP.kpNum);
     payload.kpBase64 = await _blobToBase64(kpBlob);
     payload.kpName   = 'КП_' + safeF(A.name) + '_' + todayFile() + '.docx';
+    console.log('[saveToCloud] КП готов, размер base64:', payload.kpBase64.length);
 
     if (lastInvoice) {
       var invBlob = await buildInvoiceDocx(EX, {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||''}, lastKP.lines, lastKP.total, lastInvoice.invNum);
@@ -1270,7 +1273,9 @@ async function saveToCloud() {
       payload.contractName   = 'Договор_' + safeF(A.name) + '_' + todayFile() + '.docx';
     }
 
+    console.log('[saveToCloud] отправка fetch на', APPS_SCRIPT_URL);
     fetch(APPS_SCRIPT_URL, { method:'POST', mode:'no-cors', body: JSON.stringify(payload) });
+    console.log('[saveToCloud] fetch отправлен');
   } catch(err) {
     console.error('saveToCloud error:', err);
   }
