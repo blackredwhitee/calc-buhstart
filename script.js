@@ -101,7 +101,7 @@ let back = false;
 const A = {
   entity:'', isNull:false, tax:'', niches:[],
   mp:[], mpInventory:false,
-  vat:'none',
+  vats:[],
   staffRf:'none', rfCount:4,
   staffForeign:'none', foreignCount:1,
   cashKassa:false, cashAvans:false,
@@ -132,7 +132,7 @@ const P = {
   null_ooo: 3000,
   entity_ooo: 10000,
   tax:   { patent:1000, ausn:3000, usn6:5000, usn15:20000, osno:30000 },
-  vat:   { none:0, nds5:5000, nds7:5000, основной:10000 },
+  vat:   { не_облагается:0, освобождение:5000, nds0:0, nds5:5000, nds7:5000, nds10:5000, nds22:10000 },
   niche: {
     marketplace:20000, wb:20000, ozon:5000, ya:10000, mp_inventory:15000,
     wholesale:20000, wh_inventory:10000,
@@ -222,13 +222,15 @@ function calcTotal() {
     total += spotPrice;
   }
 
-  // НДС
-  const vatNames = { nds5:'НДС 5%', nds7:'НДС 7%', основной:'НДС 20%' };
-  const vatPrice = P.vat[A.vat] || 0;
-  if (vatPrice) {
-    lines.push({ name: vatNames[A.vat]||('НДС ('+A.vat+')'), price: vatPrice });
-    total += vatPrice;
-  }
+  // НДС (мульти-выбор)
+  const vatNames = { не_облагается:'НДС не облагается', освобождение:'Освобождение от НДС (ст.145)', nds0:'НДС 0%', nds5:'НДС 5%', nds7:'НДС 7%', nds10:'НДС 10%', nds22:'НДС 22%' };
+  (A.vats||[]).forEach(v => {
+    const pr = P.vat[v] || 0;
+    if (pr) { lines.push({ name: vatNames[v]||v, price: pr }); total += pr; }
+    else if (v === 'не_облагается' || v === 'nds0') {
+      lines.push({ name: vatNames[v]||v, price: 0 });
+    }
+  });
 
   // Сотрудники РФ
   if (A.staffRf === 'rf_1_3') {
@@ -380,7 +382,7 @@ function collectStep(n) {
     A.mp = [...document.querySelectorAll('#g-mp .selected')].map(b=>b.dataset.val);
     A.mpInventory = document.getElementById('mp-inventory').checked;
   }
-  if (n===6)  { const s=document.querySelector('#g-vat .selected'); if(s) A.vat=s.dataset.val; }
+  if (n===6)  { A.vats = [...document.querySelectorAll('#g-vat .selected')].map(b=>b.dataset.val); }
   if (n===7)  {
     const sr=document.querySelector('#g-staff-rf .selected'); if(sr) A.staffRf=sr.dataset.val;
     A.rfCount = parseInt(document.getElementById('rf-count').value)||4;
@@ -425,7 +427,7 @@ function restoreStep(n) {
     document.querySelectorAll('#g-mp .ccard').forEach(b => b.classList.toggle('selected', A.mp.includes(b.dataset.val)));
     document.getElementById('mp-inventory').checked = A.mpInventory;
   }
-  if (n===6)  restorePick('g-vat', A.vat);
+  if (n===6)  document.querySelectorAll('#g-vat .ncard').forEach(b => b.classList.toggle('selected', (A.vats||[]).includes(b.dataset.val)));
   if (n===7)  {
     restorePick('g-staff-rf', A.staffRf);
     restorePick('g-staff-foreign', A.staffForeign);
@@ -479,7 +481,7 @@ function validateStep(n) {
   if (n===3)  { if (!document.querySelector('#g-tax .selected'))    { setErr('err-tax','Выберите систему налогообложения'); return false; } }
   if (n===4)  { if (!document.querySelector('#g-niche .selected')) { setErr('err-niche','Выберите вид деятельности'); return false; } }
   if (n===5)  { if (A.mp.length===0 && !document.querySelectorAll('#g-mp .selected').length) { setErr('err-mp','Выберите хотя бы один маркетплейс'); return false; } }
-  if (n===6)  { if (!document.querySelector('#g-vat .selected'))    { setErr('err-vat','Выберите вариант'); return false; } }
+  // шаг 6 — выбор НДС необязателен
   if (n===7)  {
     if (!document.querySelector('#g-staff-rf .selected'))      { setErr('err-staff','Укажите сотрудников РФ'); return false; }
     if (!document.querySelector('#g-staff-foreign .selected')) { setErr('err-staff','Укажите иностранных сотрудников'); return false; }
@@ -542,6 +544,12 @@ function cashNoneToggle() {
 function militaryToggle() {
   const checked = document.getElementById('add-military').checked;
   document.getElementById('military-count-row').style.display = checked ? 'flex' : 'none';
+  updateTotal();
+}
+
+function toggleMultiVat(btn) {
+  btn.classList.toggle('selected');
+  collectStep(6);
   updateTotal();
 }
 
@@ -648,7 +656,7 @@ function showFinal() {
 function newQuiz() {
   Object.assign(A, {
     entity:'', isNull:false, tax:'', niches:[],
-    mp:[], mpInventory:false, vat:'none',
+    mp:[], mpInventory:false, vats:[],
     staffRf:'none', rfCount:4, staffForeign:'none', foreignCount:1,
     cashKassa:false, cashAvans:false,
     ved:false, reconcile:false, taxMgmt:false,
