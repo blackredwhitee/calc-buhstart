@@ -85,6 +85,9 @@ const EXECUTORS = [
   },
 ];
 
+// ─── URL Google Apps Script (заменить после деплоя) ──
+const APPS_SCRIPT_URL = '';  // вставить сюда URL вида https://script.google.com/macros/s/.../exec
+
 // Текущее юрлицо — по умолчанию первое
 let EX = Object.assign({}, EXECUTORS[0]);
 
@@ -658,11 +661,13 @@ function downloadContract() {
 }
 
 function showFinal() {
+  saveToCloud();
   document.getElementById('final-sec').style.display = 'block';
   document.getElementById('final-sec').scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
 function newQuiz() {
+  saveToCloud();
   Object.assign(A, {
     entity:'', isNull:false, tax:'', niches:[],
     mp:[], mpInventory:false, vats:[],
@@ -1164,6 +1169,56 @@ async function buildContractDocx(ex, client, services, total, conNum) {
     }),
   };
   return _fillDocxTemplate(templateFile, data);
+}
+
+/* ─── Сохранение заявки в Google Sheets + Drive ─────── */
+async function _blobToBase64(blob) {
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload  = function() { resolve(reader.result.split(',')[1]); };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function saveToCloud() {
+  if (!APPS_SCRIPT_URL || !lastKP) return;
+
+  var taxNames = { patent:'Патент', ausn_d:'АУСН Доходы', ausn_dr:'АУСН Доходы-Расходы', usn6:'УСН 6%', usn15:'УСН 15%', osno:'ОСНО' };
+  var payload = {
+    date:        todayFile(),
+    clientName:  A.name || '—',
+    entity:      A.entity || '',
+    tax:         A.isNull ? 'Нулевая' : (taxNames[A.tax] || A.tax || ''),
+    services:    lastKP.lines.map(function(l){ return l.name; }).join(', '),
+    total:       lastKP.total,
+    discount:    Number(A.discount) || 0,
+    kpNum:       lastKP.kpNum,
+    invoiceNum:  lastInvoice  ? lastInvoice.invNum  : '',
+    contractNum: lastContract ? lastContract.cNum   : '',
+  };
+
+  try {
+    var kpBlob = await buildKPDocx(EX, {name:A.name, inn:A.req.inn, director:A.director}, lastKP.lines, lastKP.total, lastKP.kpNum);
+    payload.kpBase64 = await _blobToBase64(kpBlob);
+    payload.kpName   = 'КП_' + safeF(A.name) + '_' + todayFile() + '.docx';
+
+    if (lastInvoice) {
+      var invBlob = await buildInvoiceDocx(EX, {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||''}, lastKP.lines, lastKP.total, lastInvoice.invNum);
+      payload.invoiceBase64 = await _blobToBase64(invBlob);
+      payload.invoiceName   = 'Счёт_' + safeF(A.name) + '_' + todayFile() + '.docx';
+    }
+
+    if (lastContract) {
+      var conBlob = await buildContractDocx(EX, {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||'',ogrn:A.req.ogrn||'',ogrnip:A.req.ogrn||'',director:A.req.director||''}, lastKP.lines, lastKP.total, lastContract.cNum);
+      payload.contractBase64 = await _blobToBase64(conBlob);
+      payload.contractName   = 'Договор_' + safeF(A.name) + '_' + todayFile() + '.docx';
+    }
+
+    fetch(APPS_SCRIPT_URL, { method:'POST', mode:'no-cors', body: JSON.stringify(payload) });
+  } catch(err) {
+    console.error('saveToCloud error:', err);
+  }
 }
 
 /* ─── Скачивание и утилиты ──────────────────────── */
