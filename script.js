@@ -20,8 +20,9 @@ const EXECUTORS = [
     rs:       '40702810720000170264',
     bik:      '044525104',
     ks:       '30101810745374525104',
-    director: 'Горелкина Галина Викторовна',
-    dirShort: 'Горелкина Г.В.',
+    director:    'Горелкина Галина Викторовна',
+    directorGen: 'Горелкиной Галины Викторовны',
+    dirShort:    'Горелкина Г.В.',
   },
   {
     name:     'ООО «Бета Финанс»',
@@ -954,6 +955,23 @@ async function buildKPDocx(ex, client, services, total, kpNum) {
     discount_amount:  disc > 0 ? fmtN(Math.round(total / (1 - disc / 100) * disc / 100)) : '',
     total_amount:     fmtN(total),
     valid_until:      validDate.toLocaleDateString('ru-RU', {day:'2-digit', month:'long', year:'numeric'}),
+    // Исполнитель
+    ex_name:      ex.name || '',
+    ex_short:     (ex.name || '').replace(/^ООО\s*[«"'](.+)[»"']$/, '$1').trim(),
+    ex_fullname:  ex.name || '',
+    ex_inn:       ex.inn || '',
+    ex_kpp:       ex.kpp || '',
+    ex_ogrn:      ex.ogrn || '',
+    ex_address:   ex.address || '',
+    ex_phone:     ex.phone || '',
+    ex_email:     ex.email || '',
+    ex_bank:      ex.bank || '',
+    ex_rs:        ex.rs || '',
+    ex_bik:       ex.bik || '',
+    ex_ks:        ex.ks || '',
+    ex_director:  ex.director || '',
+    ex_dir_short: ex.dirShort || '',
+    ex_director_gen: ex.directorGen || ex.director || '',
   };
 
   return _fillDocxTemplate('KP_template.docx', data);
@@ -1063,6 +1081,17 @@ async function buildInvoiceDocx(ex, client, services, total, invNum) {
     discount_amount:  disc > 0 ? fmtI(discAmount) : '',
     total_amount:     fmtN(finalTotal),
     total_amount_words: _rubles2words(finalTotal),
+    // Исполнитель
+    ex_name:      ex.name || '',
+    ex_short:     (ex.name || '').replace(/^ООО\s*[«"'](.+)[»"']$/, '$1').trim(),
+    ex_inn:       ex.inn || '',
+    ex_kpp:       ex.kpp || '',
+    ex_address:   ex.address || '',
+    ex_bank:      ex.bank || '',
+    ex_rs:        ex.rs || '',
+    ex_bik:       ex.bik || '',
+    ex_ks:        ex.ks || '',
+    ex_dir_short: ex.dirShort || '',
   };
   return _fillDocxTemplate('invoice_template.docx', data);
 }
@@ -1167,6 +1196,23 @@ async function buildContractDocx(ex, client, services, total, conNum) {
         service_description: getServiceDescription(s.name || ''),
       };
     }),
+    // Исполнитель
+    ex_name:         ex.name || '',
+    ex_short:        (ex.name || '').replace(/^ООО\s*[«"'](.+)[»"']$/, '$1').trim(),
+    ex_fullname:     ex.name || '',
+    ex_inn:          ex.inn || '',
+    ex_kpp:          ex.kpp || '',
+    ex_ogrn:         ex.ogrn || '',
+    ex_address:      ex.address || '',
+    ex_phone:        ex.phone || '',
+    ex_email:        ex.email || '',
+    ex_bank:         ex.bank || '',
+    ex_rs:           ex.rs || '',
+    ex_bik:          ex.bik || '',
+    ex_ks:           ex.ks || '',
+    ex_director:     ex.director || '',
+    ex_dir_short:    ex.dirShort || '',
+    ex_director_gen: ex.directorGen || ex.director || '',
   };
   return _fillDocxTemplate(templateFile, data);
 }
