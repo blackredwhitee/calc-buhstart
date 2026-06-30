@@ -21,6 +21,7 @@ body{font-family:var(--fb);background:var(--gray-50);color:var(--gray-800);line-
 .hero{background:linear-gradient(135deg,var(--blue-900) 0%,var(--blue-700) 55%,var(--indigo-600) 100%);color:#fff;padding:56px 40px 80px;position:relative;overflow:hidden;margin-bottom:-48px;z-index:1}
 .hero::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E");pointer-events:none}
 .hero-inner{max-width:640px;position:relative;z-index:1}
+.hero-logo{height:60px;width:auto;margin-bottom:20px;display:block}
 .hero-badge{display:inline-block;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);color:rgba(255,255,255,.9);font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;padding:4px 12px;border-radius:100px;margin-bottom:16px}
 .hero-title{font-family:var(--fd);font-size:clamp(26px,4.5vw,44px);font-weight:800;line-height:1.1;letter-spacing:-.02em;margin-bottom:14px}
 .hero-sub{font-size:15px;line-height:1.65;color:rgba(255,255,255,.78);margin-bottom:28px;max-width:480px}
