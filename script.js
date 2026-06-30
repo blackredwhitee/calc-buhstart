@@ -1023,8 +1023,12 @@ async function buildInvoiceDocx(ex, client, services, total, invNum) {
   const today = new Date();
   const today_s = today.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
   const filt = services.filter(function(s){ return !s.individual; });
-  const filtTotal = filt.reduce(function(s,x){ return s+(x.price||0); }, 0);
+  const subtotal = filt.reduce(function(s,x){ return s+(x.price||0); }, 0);
+  const disc = Number(A.discount) || 0;
+  const discAmount = disc > 0 ? Math.round(subtotal * disc / 100) : 0;
+  const finalTotal = disc > 0 ? Math.round(subtotal * (1 - disc / 100)) : subtotal;
   const fmtN = function(n){ return new Intl.NumberFormat('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n||0); };
+  const fmtI = function(n){ return new Intl.NumberFormat('ru-RU').format(Math.round(n||0)); };
 
   const data = {
     invoice_number: String(invNum),
@@ -1041,8 +1045,12 @@ async function buildInvoiceDocx(ex, client, services, total, invNum) {
       price: fmtN(s.price||0),
       sum: fmtN(s.price||0),
     }; }),
-    total_amount: fmtN(filtTotal),
-    total_amount_words: _rubles2words(filtTotal),
+    subtotal_amount:  fmtN(subtotal),
+    show_discount:    disc > 0,
+    discount_percent: disc > 0 ? String(disc) : '',
+    discount_amount:  disc > 0 ? fmtI(discAmount) : '',
+    total_amount:     fmtN(finalTotal),
+    total_amount_words: _rubles2words(finalTotal),
   };
   return _fillDocxTemplate('invoice_template.docx', data);
 }
