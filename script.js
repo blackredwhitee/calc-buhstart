@@ -285,6 +285,10 @@ function updateTotal() {
 /* ─── Старт квиза ─────────────────────────────── */
 function startQuiz() {
   document.getElementById('hero').style.display = 'none';
+  document.getElementById('kp-sec').style.display = 'none';
+  document.getElementById('contract-sec').style.display = 'none';
+  document.getElementById('final-sec').style.display = 'none';
+  document.getElementById('quiz-wrap').style.display = 'block';
   showStep(1);
   document.getElementById('quiz-start').scrollIntoView({ behavior:'smooth', block:'start' });
 }
