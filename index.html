@@ -193,12 +193,16 @@
             <span class="cc-label">Нет</span>
             <span class="cc-sub">Без НДС</span>
           </button>
-          <button class="ccard" data-val="льготный" onclick="pick(this,'g-vat')">
-            <span class="cc-label">Льготный</span>
+          <button class="ccard" data-val="nds5" onclick="pick(this,'g-vat')">
+            <span class="cc-label">5%</span>
+            <span class="cc-sub">+5 000 ₽</span>
+          </button>
+          <button class="ccard" data-val="nds7" onclick="pick(this,'g-vat')">
+            <span class="cc-label">7%</span>
             <span class="cc-sub">+5 000 ₽</span>
           </button>
           <button class="ccard" data-val="основной" onclick="pick(this,'g-vat')">
-            <span class="cc-label">Основной 20%</span>
+            <span class="cc-label">20%</span>
             <span class="cc-sub">+10 000 ₽</span>
           </button>
         </div>
@@ -304,6 +308,14 @@
             <input type="checkbox" id="add-licenses" onchange="updateTotal()"/>
             <span>Лицензионная отчётность (строительство, алко и др.) <strong>+10 000 ₽</strong></span>
           </label>
+          <label class="chk-label">
+            <input type="checkbox" id="add-spot" onchange="spotToggle()"/>
+            <span>СПОТ (подтверждение поставки) <strong>1 000 ₽ × кол-во документов</strong></span>
+          </label>
+          <div class="num-row" id="spot-count-row" style="display:none">
+            <label class="q-label">Количество документов СПОТ</label>
+            <input class="q-input num-input" type="number" id="spot-count" min="1" value="1" onchange="updateTotal()"/>
+          </div>
           <label class="chk-label">
             <input type="checkbox" id="add-mgmt-acc" onchange="updateTotal()"/>
             <span>Управленческий учёт <strong>— рассчитывается индивидуально</strong></span>
@@ -435,7 +447,7 @@
           </div>
           <div class="field-row" style="margin-top:12px">
             <label class="q-label">КП действует (дней)</label>
-            <input class="q-input" type="number" id="kp-valid-days" value="14" min="1" max="365" style="width:120px" oninput="A.kpValidDays=this.value;buildSummary()"/>
+            <input class="q-input" type="number" id="kp-valid-days" value="5" min="1" max="365" style="width:120px" oninput="A.kpValidDays=this.value;buildSummary()"/>
           </div>
         </div>
 
@@ -584,6 +596,6 @@
 <script src="docx.min.js"></script>
 <script src="pizzip.js"></script>
 <script src="docxtemplater.js"></script>
-<script src="script.js?v=30"></script>
+<script src="script.js?v=31"></script>
 </body>
 </html>

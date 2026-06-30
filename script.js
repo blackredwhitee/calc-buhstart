@@ -109,7 +109,8 @@ const A = {
   military:false, militaryCount:1,
   licenses:false, mgmtAcc:false, officeBuh:false,
   inventory:false, addPatent:false,
-  discount:0, kpValidDays:14,
+  spot:false, spotCount:1,
+  discount:0, kpValidDays:5,
   name:'', director:'',
   req:{ inn:'', kpp:'', address:'', phone:'', email:'', rs:'', bank:'', bik:'' }
 };
@@ -131,7 +132,7 @@ const P = {
   null_ooo: 3000,
   entity_ooo: 10000,
   tax:   { patent:1000, ausn:3000, usn6:5000, usn15:20000, osno:30000 },
-  vat:   { none:0, льготный:5000, основной:10000 },
+  vat:   { none:0, nds5:5000, nds7:5000, основной:10000 },
   niche: {
     marketplace:20000, wb:20000, ozon:5000, ya:10000, mp_inventory:15000,
     wholesale:20000, wh_inventory:10000,
@@ -214,10 +215,18 @@ function calcTotal() {
     total += P.tax.patent;
   }
 
+  // СПОТ
+  if (A.spot) {
+    const spotPrice = (Number(A.spotCount)||1) * 1000;
+    lines.push({ name:`СПОТ (${A.spotCount||1} док.)`, price: spotPrice });
+    total += spotPrice;
+  }
+
   // НДС
+  const vatNames = { nds5:'НДС 5%', nds7:'НДС 7%', основной:'НДС 20%' };
   const vatPrice = P.vat[A.vat] || 0;
   if (vatPrice) {
-    lines.push({ name:`НДС (${A.vat})`, price: vatPrice });
+    lines.push({ name: vatNames[A.vat]||('НДС ('+A.vat+')'), price: vatPrice });
     total += vatPrice;
   }
 
@@ -389,6 +398,8 @@ function collectStep(n) {
     A.military  = document.getElementById('add-military').checked;
     A.militaryCount = parseInt(document.getElementById('military-count').value)||1;
     A.licenses  = document.getElementById('add-licenses').checked;
+    A.spot      = document.getElementById('add-spot').checked;
+    A.spotCount = parseInt(document.getElementById('spot-count').value)||1;
     A.mgmtAcc   = document.getElementById('add-mgmt-acc').checked;
     A.officeBuh = document.getElementById('add-office-buh').checked;
     A.inventory = document.getElementById('add-inventory') ? document.getElementById('add-inventory').checked : false;
@@ -435,6 +446,9 @@ function restoreStep(n) {
     document.getElementById('military-count').value  = A.militaryCount;
     document.getElementById('military-count-row').style.display = A.military?'flex':'none';
     document.getElementById('add-licenses').checked  = A.licenses;
+    document.getElementById('add-spot').checked       = A.spot;
+    document.getElementById('spot-count').value       = A.spotCount;
+    document.getElementById('spot-count-row').style.display = A.spot?'flex':'none';
     document.getElementById('add-mgmt-acc').checked  = A.mgmtAcc;
     document.getElementById('add-office-buh').checked = A.officeBuh;
     const inv = document.getElementById('add-inventory');
@@ -528,6 +542,12 @@ function cashNoneToggle() {
 function militaryToggle() {
   const checked = document.getElementById('add-military').checked;
   document.getElementById('military-count-row').style.display = checked ? 'flex' : 'none';
+  updateTotal();
+}
+
+function spotToggle() {
+  const checked = document.getElementById('add-spot').checked;
+  document.getElementById('spot-count-row').style.display = checked ? 'flex' : 'none';
   updateTotal();
 }
 
@@ -632,9 +652,10 @@ function newQuiz() {
     staffRf:'none', rfCount:4, staffForeign:'none', foreignCount:1,
     cashKassa:false, cashAvans:false,
     ved:false, reconcile:false, taxMgmt:false,
-    military:false, militaryCount:1, licenses:false, mgmtAcc:false, officeBuh:false,
+    military:false, militaryCount:1, licenses:false, spot:false, spotCount:1,
+    mgmtAcc:false, officeBuh:false,
     inventory:false, addPatent:false,
-    discount:0, kpValidDays:14,
+    discount:0, kpValidDays:5,
     name:'', director:'',
     req:{ inn:'', kpp:'', address:'', phone:'', email:'', rs:'', bank:'', bik:'' }
   });
