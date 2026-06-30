@@ -1158,6 +1158,9 @@ async function buildContractDocx(ex, client, services, total, conNum) {
   const isOOO = (A.entity === 'ООО');
   const templateFile = isOOO ? 'contract_ooo_template.docx' : 'contract_ip_template.docx';
 
+  const disc = Number(A.discount) || 0;
+  const originalTotal = disc > 0 ? Math.round(total / (1 - disc / 100)) : total;
+
   // Извлечь название компании без "ООО «»"
   const companyName = (client.name||'').replace(/^ООО\s*[«"'](.+)[»"']$/, '$1').trim() || client.name || '';
 
@@ -1186,6 +1189,12 @@ async function buildContractDocx(ex, client, services, total, conNum) {
     client_bik:          client.bik || '',
     client_corr_account: client.ks || '',
     client_address:      client.address || '',
+    // Стоимость и скидка
+    total_amount:       _fmt(total),
+    total_amount_words: _rubles2words(total).replace(/ \d{2} коп\.$/, ''),
+    show_discount:      disc > 0,
+    discount_percent:   disc > 0 ? String(disc) : '',
+    original_amount:    disc > 0 ? _fmt(originalTotal) : '',
     // Предоплата 50%
     amount:       _fmt(Math.round(total * 0.5)),
     amount_words: _rubles2words(Math.round(total * 0.5)).replace(/ \d{2} коп\.$/, ''),
