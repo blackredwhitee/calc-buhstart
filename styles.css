@@ -171,6 +171,8 @@ body{font-family:var(--fb);background:#e8e6e1;color:var(--gray-800);line-height:
 @media(max-width:400px){
   .grid-3{grid-template-columns:1fr}
   .niche-grid{grid-template-columns:1fr}
+  .modal-footer{flex-direction:column}
+  .modal-footer .btn{width:100%;justify-content:center}
 }
 
 /* ── Выбор юрлица ─────────────────────────── */

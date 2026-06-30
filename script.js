@@ -112,7 +112,7 @@ const A = {
   spot:false, spotCount:1,
   discount:0, kpValidDays:5,
   name:'', director:'',
-  req:{ inn:'', kpp:'', address:'', phone:'', email:'', rs:'', bank:'', bik:'' }
+  req:{ inn:'', kpp:'', address:'', phone:'', email:'', rs:'', bank:'', bik:'', ks:'', ogrn:'', director:'' }
 };
 
 
@@ -305,16 +305,15 @@ function goBack() {
   if (prev >= 1) showStep(prev);
 }
 
-// Логика пропуска шагов
+// Логика пропуска шагов (шаг 10 удалён)
 function nextStepNum(n) {
   if (n === 2 && A.isNull) return 11; // нулёвка → пропустить 3-9
   if (n === 4 && !A.niches.includes('marketplace')) return 6; // не маркетплейс → пропустить шаг 5
-  if (n === 9) return 11; // пропустить шаг 10 (срочность убрана)
+  if (n === 9) return 11; // шаг 10 убран
   return n + 1;
 }
 
 function prevStepNum(n) {
-  if (n === 10 && A.isNull) return 2;
   if (n === 6 && !A.niches.includes('marketplace')) return 4;
   if (n === 11 && A.isNull) return 2;
   if (n === 11) return 9;
@@ -331,10 +330,9 @@ function showStep(n) {
 
   // Прогресс — считаем визуально линейно
   const visual = visualStep(n);
-  const total_visual = A.isNull ? 5 : (A.niches.includes('marketplace') ? STEPS : STEPS - 1);
-  const totalVisual = A.isNull ? 4 : STEPS - 1;
+  const totalVisual = A.isNull ? 4 : (A.niches.includes('marketplace') ? 11 : 10);
   document.getElementById('step-label').textContent = `Шаг ${visual} из ${totalVisual}`;
-  document.getElementById('prog-fill').style.width = `${(visual / totalVisual) * 100}%`;
+  document.getElementById('prog-fill').style.width = `${Math.min((visual / totalVisual) * 100, 100)}%`;
 
   document.getElementById('btn-back').style.display = n > 1 ? 'inline-flex' : 'none';
   const btnNext = document.getElementById('btn-next');
@@ -360,15 +358,17 @@ function showStep(n) {
 }
 
 function visualStep(n) {
-  // Маппинг реального шага в визуальный номер (шаг 10 убран)
+  // Маппинг реального шага в визуальный (шаг 10 удалён)
   if (A.isNull) {
     const map = {1:1, 2:2, 11:3, 12:4};
     return map[n] || n;
   }
-  // без шага 10: 11→10, 12→11 (или 10 если без маркетплейса)
-  if (n >= 11) return n - 1;
-  if (!A.niches.includes('marketplace') && n >= 6) return n - 1;
-  return n;
+  // Без маркетплейса: пропускаем шаг 5 → начиная с 6 сдвигаем -1; плюс шаг 10 удалён → с 11 ещё -1
+  const skipMp = !A.niches.includes('marketplace');
+  let v = n;
+  if (skipMp && n >= 6) v -= 1;
+  if (n >= 11) v -= 1;
+  return v;
 }
 
 /* ─── Сбор данных ─────────────────────────────── */
@@ -597,7 +597,8 @@ function generateKP() {
     setErr('err-final','Введите название клиента — вернитесь на шаг 11');
     return;
   }
-  const kpNum = nextNum('КП');
+  // Guard: не инкрементировать счётчик при повторном вызове
+  const kpNum = lastKP ? lastKP.kpNum : nextNum('КП');
   const kpText = buildKPText(total, lines, hasIndividual, kpNum);
   lastKP = { text:kpText, kpNum, total, lines, hasIndividual };
 
@@ -632,20 +633,22 @@ function generateContract() {
 function downloadKP() {
   if (!lastKP) { showToast('КП не сформировано'); return; }
   showToast('Формируем файл...');
-  buildKPDocx(EX, {name: A.name, inn: A.inn, director: A.director}, lastKP.lines, lastKP.total, lastKP.kpNum)
+  buildKPDocx(EX, {name: A.name, inn: A.req.inn, director: A.director}, lastKP.lines, lastKP.total, lastKP.kpNum)
     .then(b => { downloadBlob(b, `КП_${safeF(A.name)}_${todayFile()}.docx`); showToast('КП скачивается'); })
     .catch(e => { console.error('KP docx error:', e); showToast('Ошибка формирования файла'); });
 }
 function downloadInvoice() {
   if (!lastKP) { showToast('КП не сформировано'); return; }
-  const invNum = nextNum('СЧ');
+  // Фиксируем номер счёта при первом вызове, повторные — тот же номер
+  if (!lastInvoice) lastInvoice = { invNum: nextNum('СЧ') };
+  const invNum = lastInvoice.invNum;
   buildInvoiceDocx(EX, {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||''}, lastKP.lines, lastKP.total, invNum)
     .then(b => { downloadBlob(b, `Счёт_${safeF(A.name)}_${todayFile()}.docx`); showToast('Счёт скачивается'); })
     .catch(e => { console.error('Invoice docx error:', e); showToast('Ошибка формирования файла'); });
 }
 function downloadContract() {
   if (!lastContract) { showToast('Договор не сформирован'); return; }
-  buildContractDocx(EX, {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||''}, lastKP.lines, lastKP.total, lastContract.cNum)
+  buildContractDocx(EX, {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||'',ogrn:A.req.ogrn||'',ogrnip:A.req.ogrn||'',director:A.req.director||''}, lastKP.lines, lastKP.total, lastContract.cNum)
     .then(b => { downloadBlob(b, `Договор_${safeF(A.name)}_${todayFile()}.docx`); showToast('Договор скачивается'); })
     .catch(e => { console.error('Contract docx error:', e); showToast('Ошибка формирования файла'); });
 }
@@ -667,10 +670,10 @@ function newQuiz() {
     inventory:false, addPatent:false,
     discount:0, kpValidDays:5,
     name:'', director:'',
-    req:{ inn:'', kpp:'', address:'', phone:'', email:'', rs:'', bank:'', bik:'' }
+    req:{ inn:'', kpp:'', address:'', phone:'', email:'', rs:'', bank:'', bik:'', ks:'', ogrn:'', director:'' }
   });
   EX = Object.assign({}, EXECUTORS[0]);
-  lastKP = null; lastContract = null;
+  lastKP = null; lastContract = null; lastInvoice = null;
   document.getElementById('kp-sec').style.display      = 'none';
   document.getElementById('contract-sec').style.display = 'none';
   document.getElementById('final-sec').style.display   = 'none';
@@ -683,7 +686,7 @@ function newQuiz() {
 /* ─── Тексты документов (предпросмотр) ────────── */
 function kpValidStr() {
   const d = new Date();
-  d.setDate(d.getDate() + (Number(A.kpValidDays) || 14));
+  d.setDate(d.getDate() + (Number(A.kpValidDays) || 5));
   return d.toLocaleDateString('ru-RU', { day:'2-digit', month:'long', year:'numeric' });
 }
 
@@ -753,7 +756,7 @@ ${EX.address}
 Заказчик: ${A.name}${A.req.inn?'\nИНН: '+A.req.inn:''}${A.req.kpp?'\nКПП: '+A.req.kpp:''}${A.req.address?'\n'+A.req.address:''}${A.req.phone?'\n'+A.req.phone:''}${A.req.email?'\n'+A.req.email:''}
 
 Исполнитель: _______________ / ${EX.dirShort} /
-Заказчик:    _______________ / ${A.contact||A.name} /`;
+Заказчик:    _______________ / ${A.req.director||A.name} /`;
 }
 
 
@@ -919,7 +922,7 @@ function _fmt(n) { return new Intl.NumberFormat('ru-RU').format(Math.round(n||0)
 async function buildKPDocx(ex, client, services, total, kpNum) {
   const disc = Number(A.discount) || 0;
   const validDate = new Date();
-  validDate.setDate(validDate.getDate() + (Number(A.kpValidDays) || 14));
+  validDate.setDate(validDate.getDate() + (Number(A.kpValidDays) || 5));
 
   const fmtN = function(n) {
     return new Intl.NumberFormat('ru-RU').format(Math.round(n || 0));
@@ -1145,9 +1148,9 @@ async function buildContractDocx(ex, client, services, total, conNum) {
     client_bik:          client.bik || '',
     client_corr_account: client.ks || '',
     client_address:      client.address || '',
-    // Предоплата
-    amount:       '20 000',
-    amount_words: 'Двадцати тысяч',
+    // Предоплата 50%
+    amount:       _fmt(Math.round(total * 0.5)),
+    amount_words: _rubles2words(Math.round(total * 0.5)).replace(/ \d{2} коп\.$/, ''),
     // Приложение №1 — перечень обязанностей
     contract_services: services.map(function(s, i) {
       return {
@@ -1196,10 +1199,9 @@ function showToast(msg) {
 }
 
 /* ─── Init ──────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', function() {
-  // Маска телефона
-  var ph = document.getElementById('f-phone');
-  if (ph) ph.addEventListener('input', function() {
+function applyPhoneMask(el) {
+  if (!el) return;
+  el.addEventListener('input', function() {
     var v = this.value.replace(/\D/g,'');
     if (v.startsWith('8')) v = '7'+v.slice(1);
     if (v.startsWith('7') && v.length > 1)
@@ -1207,9 +1209,13 @@ document.addEventListener('DOMContentLoaded', function() {
     else if (v.length) v = '+'+v;
     this.value = v;
   });
-  // ИНН — только цифры
-  var inn = document.getElementById('f-inn');
-  if (inn) inn.addEventListener('input', function(){ this.value=this.value.replace(/\D/g,'').slice(0,12); });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Маска телефона и ИНН в модале реквизитов
+  applyPhoneMask(document.getElementById('r-phone'));
+  var rInnEl = document.getElementById('r-inn');
+  if (rInnEl) rInnEl.addEventListener('input', function(){ this.value=this.value.replace(/\D/g,'').slice(0,12); });
   // Enter
   document.addEventListener('keydown', function(e) {
     if (e.key==='Enter' && step < STEPS) goNext();
