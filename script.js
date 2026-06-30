@@ -642,7 +642,7 @@ function downloadKP() {
   if (!lastKP) { showToast('КП не сформировано'); return; }
   showToast('Формируем файл...');
   buildKPDocx(EX, {name: A.name, inn: A.req.inn, director: A.director}, lastKP.lines, lastKP.total, lastKP.kpNum)
-    .then(b => { downloadBlob(b, `КП_${safeF(A.name)}_${todayFile()}.docx`); showToast('КП скачивается'); })
+    .then(b => { downloadBlob(b, `КП_${safeF(A.name)}_${todayFile()}.docx`); showToast('КП скачивается'); saveToCloud(); })
     .catch(e => { console.error('KP docx error:', e); showToast('Ошибка формирования файла'); });
 }
 function downloadInvoice() {
