@@ -17,7 +17,7 @@ html{scroll-behavior:smooth}
 body{font-family:var(--fb);background:#e8e6e1;color:var(--gray-800);line-height:1.6;-webkit-font-smoothing:antialiased}
 
 /* HERO */
-.hero{background:#fff;color:var(--gray-900);padding:56px 40px 80px;position:relative;overflow:hidden;margin-bottom:-48px;z-index:1;border-bottom:1px solid var(--gray-200);text-align:center}
+.hero{background:#fff;color:var(--gray-900);padding:56px 40px 80px;position:relative;overflow:hidden;margin-bottom:-48px;z-index:1;border-bottom:1px solid var(--gray-200);text-align:center;min-height:100vh;display:flex;align-items:center;justify-content:center;box-sizing:border-box}
 .hero-inner{max-width:640px;position:relative;z-index:1;margin:0 auto;display:flex;flex-direction:column;align-items:center}
 .hero-logo{height:56px;width:auto;margin-bottom:24px;display:block}
 .hero-badge{display:inline-block;background:var(--or-50);border:1px solid var(--or-100);color:var(--or-700);font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;padding:4px 12px;border-radius:4px;margin-bottom:18px}
@@ -27,7 +27,7 @@ body{font-family:var(--fb);background:#e8e6e1;color:var(--gray-800);line-height:
 .btn-hero:hover{background:var(--or-700);transform:translateY(-2px);box-shadow:0 8px 28px rgba(227,86,17,.4)}
 
 /* QUIZ */
-.quiz-wrap{max-width:700px;margin:0 auto;padding:0 20px 80px;position:relative;z-index:2}
+.quiz-wrap{max-width:700px;margin:0 auto;padding:0 20px 80px;position:relative;z-index:2;min-height:100vh;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box}
 .quiz-progress{background:var(--white);border-radius:var(--r-xl) var(--r-xl) 0 0;padding:24px 28px 0;box-shadow:0 -4px 24px rgba(0,0,0,.08)}
 .quiz-progress-inner{display:flex;flex-direction:column;gap:8px}
 .step-label{font-size:13px;font-weight:600;color:var(--gray-500)}
