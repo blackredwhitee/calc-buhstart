@@ -131,7 +131,7 @@ const P = {
   null_ip:  2000,
   null_ooo: 3000,
   entity_ooo: 10000,
-  tax:   { patent:1000, ausn:3000, usn6:5000, usn15:20000, osno:30000 },
+  tax:   { patent:1000, ausn_d:3000, ausn_dr:3000, usn6:5000, usn15:20000, osno:30000 },
   vat:   { не_облагается:0, освобождение:5000, nds0:0, nds5:5000, nds7:5000, nds10:5000, nds22:10000 },
   niche: {
     marketplace:20000, wb:20000, ozon:5000, ya:10000, mp_inventory:15000,
@@ -203,7 +203,7 @@ function calcTotal() {
   }
 
   // Система налогообложения
-  const taxNames = { patent:'Патент', ausn:'АУСН', usn6:'УСН 6%', usn15:'УСН 15%', osno:'ОСНО' };
+  const taxNames = { patent:'Патент', ausn_d:'АУСН Доходы', ausn_dr:'АУСН Доходы-Расходы', usn6:'УСН 6%', usn15:'УСН 15%', osno:'ОСНО' };
   const taxPrice = P.tax[A.tax] || 0;
   if (taxPrice) {
     lines.push({ name: taxNames[A.tax]||A.tax, price: taxPrice });
@@ -576,7 +576,7 @@ function buildSummary() {
     </div>`
   ).join('') + (disc > 0 ? `<div class="sum-modifier"><span>Скидка ${disc}%</span><span>−${disc}%</span></div>` : '');
 
-  const taxNames = { patent:'Патент', ausn:'АУСН', usn6:'УСН 6%', usn15:'УСН 15%', osno:'ОСНО' };
+  const taxNames = { patent:'Патент', ausn_d:'АУСН Доходы', ausn_dr:'АУСН Доходы-Расходы', usn6:'УСН 6%', usn15:'УСН 15%', osno:'ОСНО' };
   document.getElementById('sum-params').innerHTML = `
     <div class="sum-param"><span class="sum-param-k">Клиент</span><span class="sum-param-v">${esc(A.name||'—')}</span></div>
     <div class="sum-param"><span class="sum-param-k">Форма</span><span class="sum-param-v">${esc(A.entity)}</span></div>
@@ -686,7 +686,7 @@ function kpValidStr() {
 }
 
 function buildKPText(total, lines, hasIndividual, kpNum) {
-  const taxNames = { patent:'Патент', ausn:'АУСН', usn6:'УСН 6%', usn15:'УСН 15%', osno:'ОСНО' };
+  const taxNames = { patent:'Патент', ausn_d:'АУСН Доходы', ausn_dr:'АУСН Доходы-Расходы', usn6:'УСН 6%', usn15:'УСН 15%', osno:'ОСНО' };
   const svcLines = lines.map(l => `  • ${l.name}${l.individual?' — рассчитывается индивидуально':' — '+fmt(l.price)}`).join('\n');
   return `${EX.name}
 ИНН ${EX.inn} | ${EX.address}
