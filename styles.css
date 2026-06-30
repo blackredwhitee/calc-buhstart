@@ -14,7 +14,7 @@
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{font-family:var(--fb);background:var(--gray-50);color:var(--gray-800);line-height:1.6;-webkit-font-smoothing:antialiased}
+body{font-family:var(--fb);background:#e8e6e1;color:var(--gray-800);line-height:1.6;-webkit-font-smoothing:antialiased}
 
 /* HERO */
 .hero{background:#fff;color:var(--gray-900);padding:56px 40px 80px;position:relative;overflow:hidden;margin-bottom:-48px;z-index:1;border-bottom:1px solid var(--gray-200)}
