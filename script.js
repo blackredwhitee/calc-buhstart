@@ -331,8 +331,9 @@ function showStep(n) {
   // Прогресс — считаем визуально линейно
   const visual = visualStep(n);
   const total_visual = A.isNull ? 5 : (A.niches.includes('marketplace') ? STEPS : STEPS - 1);
-  document.getElementById('step-label').textContent = `Шаг ${visual} из ${A.isNull ? 4 : (A.niches.includes('marketplace')?STEPS:STEPS-1)}`;
-  document.getElementById('prog-fill').style.width = `${(visual / (A.isNull?4:STEPS)) * 100}%`;
+  const totalVisual = A.isNull ? 4 : STEPS - 1;
+  document.getElementById('step-label').textContent = `Шаг ${visual} из ${totalVisual}`;
+  document.getElementById('prog-fill').style.width = `${(visual / totalVisual) * 100}%`;
 
   document.getElementById('btn-back').style.display = n > 1 ? 'inline-flex' : 'none';
   const btnNext = document.getElementById('btn-next');
@@ -504,7 +505,7 @@ function pick(btn, gid) {
   if (gid === 'g-tax') {
     const patentRow = document.getElementById('add-patent-row');
     if (patentRow) {
-      const showPatent = btn.dataset.val !== 'patent';
+      const showPatent = ['usn6','usn15','osno'].includes(btn.dataset.val);
       patentRow.style.display = showPatent ? 'flex' : 'none';
       if (!showPatent) { document.getElementById('add-patent').checked = false; A.addPatent = false; }
     }
