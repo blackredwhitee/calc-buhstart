@@ -1197,8 +1197,8 @@ async function buildContractDocx(ex, client, services, total, conNum) {
     discount_percent:   disc > 0 ? String(disc) : '',
     original_amount:    disc > 0 ? _fmt(originalTotal) : '',
     // Предоплата 50%
-    amount:       _fmt(Math.round(total * 0.5)),
-    amount_words: _rubles2words(Math.round(total * 0.5)).replace(/ \d{2} коп\.$/, ''),
+    amount:       _fmt(20000),
+    amount_words: _rubles2words(20000).replace(/ \d{2} коп\.$/, ''),
     // Приложение №1 — перечень обязанностей
     contract_services: services.map(function(s, i) {
       return {
