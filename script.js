@@ -201,7 +201,7 @@ function calcTotal() {
     total += invPrice;
   }
 
-  // Надбавка за ООО
+  // Доп. стоимость для ООО
   if (A.entity === 'ООО' && !A.isNull) {
     lines.push({ name:'ООО', price: P.entity_ooo });
     total += P.entity_ooo;
