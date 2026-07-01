@@ -669,6 +669,7 @@ function showFinal() {
 
 function newQuiz() {
   saveToCloud();
+  _cloudSaved = false;
   Object.assign(A, {
     entity:'', isNull:false, tax:'', niches:[],
     mp:[], mpInventory:false, vats:[],
@@ -1236,8 +1237,11 @@ async function _blobToBase64(blob) {
   });
 }
 
+var _cloudSaved = false;
 async function saveToCloud() {
   if (!APPS_SCRIPT_URL || !lastKP) return;
+  if (_cloudSaved) return;
+  _cloudSaved = true;
 
   var taxNames = { patent:'Патент', ausn_d:'АУСН Доходы', ausn_dr:'АУСН Доходы-Расходы', usn6:'УСН 6%', usn15:'УСН 15%', osno:'ОСНО' };
   var payload = {
