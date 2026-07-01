@@ -203,7 +203,7 @@ function calcTotal() {
 
   // Надбавка за ООО
   if (A.entity === 'ООО' && !A.isNull) {
-    lines.push({ name:'Надбавка за ООО', price: P.entity_ooo });
+    lines.push({ name:'ООО', price: P.entity_ooo });
     total += P.entity_ooo;
   }
 
