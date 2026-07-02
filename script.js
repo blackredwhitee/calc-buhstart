@@ -135,7 +135,7 @@ const P = {
   null_ip:  2000,
   null_ooo: 3000,
   entity_ooo: 10000,
-  tax:   { patent:1000, ausn_d:3000, ausn_dr:3000, usn6:5000, usn15:20000, osno:30000 },
+  tax:   { patent:1000, ausn_d:5000, ausn_dr:20000, usn6:5000, usn15:20000, osno:30000 },
   vat:   { не_облагается:0, освобождение:5000, nds0:0, nds5:5000, nds7:5000, nds10:5000, nds22:10000 },
   niche: {
     marketplace:20000, wb:20000, ozon:5000, ya:10000, mp_inventory:15000,
