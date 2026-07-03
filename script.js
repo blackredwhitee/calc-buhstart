@@ -1371,6 +1371,18 @@ function applyPhoneMask(el) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+  // Генерируем список юрлиц из массива EXECUTORS
+  var execList = document.getElementById('exec-list');
+  if (execList) {
+    execList.innerHTML = EXECUTORS.map(function(e, i) {
+      return '<label class="exec-opt">' +
+        '<input type="radio" name="exec" value="' + i + '"' + (i === 0 ? ' checked' : '') + ' onchange="pickExec(' + i + ')"/>' +
+        '<div class="exec-info">' +
+          '<span class="exec-name">' + e.name + '</span>' +
+          '<span class="exec-inn">ИНН ' + e.inn + '</span>' +
+        '</div></label>';
+    }).join('');
+  }
   // Маска телефона и ИНН в модале реквизитов
   applyPhoneMask(document.getElementById('r-phone'));
   var rInnEl = document.getElementById('r-inn');
