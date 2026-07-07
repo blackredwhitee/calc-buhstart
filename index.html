@@ -314,10 +314,6 @@
             <span>Сверки с покупателями и поставщиками <strong>+15 000 ₽</strong></span>
           </label>
           <label class="chk-label">
-            <input type="checkbox" id="add-taxmgmt" onchange="updateTotal()"/>
-            <span>Налоговый менеджмент <strong>+20 000 ₽</strong></span>
-          </label>
-          <label class="chk-label">
             <input type="checkbox" id="add-military" onchange="militaryToggle()"/>
             <span>Воинский учёт <strong>2 000 ₽ × кол-во сотрудников</strong></span>
           </label>
@@ -326,9 +322,13 @@
             <input class="q-input num-input" type="number" id="military-count" min="1" value="1" onchange="updateTotal()"/>
           </div>
           <label class="chk-label">
-            <input type="checkbox" id="add-licenses" onchange="updateTotal()"/>
-            <span>Лицензионная отчётность (строительство, алко и др.) <strong>+10 000 ₽</strong></span>
+            <input type="checkbox" id="add-licenses" onchange="licensesToggle()"/>
+            <span>Лицензионная отчётность (строительство, алко и др.) <strong>10 000 ₽ × кол-во лицензий</strong></span>
           </label>
+          <div class="num-row" id="license-count-row" style="display:none">
+            <label class="q-label">Количество лицензий</label>
+            <input class="q-input num-input" type="number" id="license-count" min="1" value="1" onchange="A.licenseCount=parseInt(this.value)||1; updateTotal()"/>
+          </div>
           <label class="chk-label">
             <input type="checkbox" id="add-spot" onchange="spotToggle()"/>
             <span>СПОТ (подтверждение поставки) <strong>1 000 ₽ × кол-во документов</strong></span>
@@ -337,21 +337,106 @@
             <label class="q-label">Количество документов СПОТ</label>
             <input class="q-input num-input" type="number" id="spot-count" min="1" value="1" onchange="updateTotal()"/>
           </div>
-          <label class="chk-label">
-            <input type="checkbox" id="add-mgmt-acc" onchange="updateTotal()"/>
-            <span>Управленческий учёт <strong>— рассчитывается индивидуально</strong></span>
-          </label>
-          <label class="chk-label">
-            <input type="checkbox" id="add-office-buh" onchange="updateTotal()"/>
-            <span>Выделенный бухгалтер в офис (5 дней/нед.) <strong>— рассчитывается индивидуально</strong></span>
-          </label>
         </div>
-        <!-- Товарный учёт для торговли/опта (показывается если нужно) -->
         <div id="inventory-block" style="display:none">
           <div class="sep"></div>
           <label class="chk-label">
             <input type="checkbox" id="add-inventory" onchange="updateTotal()"/>
-            <span id="inventory-label">Товарный учёт <strong id="inventory-price"></strong></span>
+            <span id="inventory-label">Товарный учёт</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- ШАГ 10: Приоритетная скорость ответа (Стандарт) -->
+      <div class="slide" data-step="10">
+        <div class="slide-icon">⚡</div>
+        <h2 class="slide-title">Приоритетная скорость ответа менеджера</h2>
+        <p class="slide-sub">Входит в пакет Стандарт</p>
+        <div class="grid-2" id="g-priority">
+          <button class="ccard ccard--lg" data-val="yes" onclick="pick(this,'g-priority')">
+            <span class="cc-icon">✅</span><span class="cc-label">Да</span>
+            <span class="cc-sub">+20% от базовой стоимости</span>
+          </button>
+          <button class="ccard ccard--lg" data-val="no" onclick="pick(this,'g-priority')">
+            <span class="cc-icon">➖</span><span class="cc-label">Нет</span>
+          </button>
+        </div>
+        <span class="q-err" id="err-priority"></span>
+      </div>
+
+      <!-- ШАГ 13: Налоговый менеджмент (только АУСН Д-Р / УСН 15% / ОСНО) -->
+      <div class="slide" data-step="13">
+        <div class="slide-icon">📊</div>
+        <h2 class="slide-title">Налоговый менеджмент</h2>
+        <p class="slide-sub">Входит в пакет Стандарт · +20 000 ₽</p>
+        <div class="grid-2" id="g-taxmgmt">
+          <button class="ccard ccard--lg" data-val="yes" onclick="pick(this,'g-taxmgmt')">
+            <span class="cc-icon">✅</span><span class="cc-label">Да</span>
+            <span class="cc-sub">+20 000 ₽</span>
+          </button>
+          <button class="ccard ccard--lg" data-val="no" onclick="pick(this,'g-taxmgmt')">
+            <span class="cc-icon">➖</span><span class="cc-label">Нет</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ШАГ 14: Бухгалтер в офисе (Стандарт) -->
+      <div class="slide" data-step="14">
+        <div class="slide-icon">🏢</div>
+        <h2 class="slide-title">Бухгалтер в офисе</h2>
+        <p class="slide-sub">Входит в пакет Стандарт · 7 500 ₽ × кол-во дней</p>
+        <div class="grid-2" id="g-office-buh">
+          <button class="ccard ccard--lg" data-val="yes" onclick="pickOfficeBuh(this)">
+            <span class="cc-icon">✅</span><span class="cc-label">Да</span>
+            <span class="cc-sub">7 500 ₽ × дней/нед.</span>
+          </button>
+          <button class="ccard ccard--lg" data-val="no" onclick="pickOfficeBuh(this)">
+            <span class="cc-icon">➖</span><span class="cc-label">Нет</span>
+          </button>
+        </div>
+        <div class="num-row" id="office-buh-days-row" style="display:none;margin-top:16px">
+          <label class="q-label">Количество рабочих дней в неделю</label>
+          <input class="q-input num-input" type="number" id="office-buh-days" min="1" max="5" value="5" onchange="A.officeBuhDays=parseInt(this.value)||5; updateTotal()"/>
+        </div>
+      </div>
+
+      <!-- ШАГ 15: Управленческий учёт (Оптима) -->
+      <div class="slide" data-step="15">
+        <div class="slide-icon">📈</div>
+        <h2 class="slide-title">Управленческий учёт</h2>
+        <p class="slide-sub">Входит в пакет Оптима · от 50 000 ₽</p>
+        <div class="grid-2" id="g-mgmt-acc">
+          <button class="ccard ccard--lg" data-val="yes" onclick="pick(this,'g-mgmt-acc')">
+            <span class="cc-icon">✅</span><span class="cc-label">Да</span>
+            <span class="cc-sub">от 50 000 ₽</span>
+          </button>
+          <button class="ccard ccard--lg" data-val="no" onclick="pick(this,'g-mgmt-acc')">
+            <span class="cc-icon">➖</span><span class="cc-label">Нет</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ШАГ 16: Состав управленческого учёта -->
+      <div class="slide" data-step="16">
+        <div class="slide-icon">📋</div>
+        <h2 class="slide-title">Состав управленческого учёта</h2>
+        <p class="slide-sub">Отметьте необходимые отчёты</p>
+        <div class="checks-list">
+          <label class="chk-label">
+            <input type="checkbox" id="mgmt-dds-odds" onchange="collectMgmtItems()"/>
+            <span>ДДС и ОДДС</span>
+          </label>
+          <label class="chk-label">
+            <input type="checkbox" id="mgmt-pl" onchange="collectMgmtItems()"/>
+            <span>P&amp;L — отчёт о прибылях и убытках</span>
+          </label>
+          <label class="chk-label">
+            <input type="checkbox" id="mgmt-budget" onchange="collectMgmtItems()"/>
+            <span>Бюджетирование</span>
+          </label>
+          <label class="chk-label">
+            <input type="checkbox" id="mgmt-contractors" onchange="collectMgmtItems()"/>
+            <span>Работа с контрагентами по задолженностям и сбор документов</span>
           </label>
         </div>
       </div>
@@ -392,6 +477,9 @@
           <div class="sum-div"></div>
           <div id="sum-params" class="sum-params"></div>
         </div>
+
+        <div id="sum-standard" style="display:none"></div>
+        <div id="sum-optima" style="display:none"></div>
         <!-- Выбор юрлица -->
         <div class="exec-pick">
           <p class="exec-pick-title">От какого юрлица формируем документы</p>

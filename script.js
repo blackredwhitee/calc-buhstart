@@ -125,6 +125,17 @@ const EXECUTORS = [
 // ─── URL Google Apps Script (заменить после деплоя) ──
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw1Vzwi4U1e46Egq9B6vqBNvkMvthiFvQZCppmMnePx5CAjtn3dwRSPYvyHDcNXWX_m/exec';
 
+// ─── Глобальные переменные стоимостей (менять только здесь) ──────────────
+const PREPAYMENT_AMOUNT = 20000;   // Счёт выставляется на эту сумму
+const OPTIMA_BASE_PRICE = 50000;   // Минимальная стоимость управленческого учёта
+
+const MGMT_ACC_ITEMS_ALL = [
+  'ДДС и ОДДС',
+  'P&L',
+  'Бюджетирование',
+  'Работа с контрагентами по задолженностям и сбор документов',
+];
+
 // Текущее юрлицо — по умолчанию первое
 let EX = Object.assign({}, EXECUTORS[0]);
 
@@ -145,11 +156,17 @@ const A = {
   staffRf:'none', rfCount:4,
   staffForeign:'none', foreignCount:1,
   cashKassa:false, cashAvans:false,
-  ved:false, reconcile:false, taxMgmt:false,
+  ved:false, reconcile:false,
   military:false, militaryCount:1,
-  licenses:false, mgmtAcc:false, officeBuh:false,
-  inventory:false, addPatent:false,
+  licenses:false, licenseCount:1,
   spot:false, spotCount:1,
+  inventory:false, addPatent:false,
+  // Стандарт (новые шаги)
+  priorityManager:false,
+  taxMgmt:false,
+  officeBuh:false, officeBuhDays:5,
+  // Оптима (новые шаги)
+  mgmtAcc:false, mgmtAccItems:[],
   discount:0, kpValidDays:5,
   name:'', director:'',
   req:{ inn:'', kpp:'', address:'', phone:'', email:'', rs:'', bank:'', bik:'', ks:'', ogrn:'', director:'' }
@@ -190,128 +207,100 @@ function nextNum(pfx){ const y=new Date().getFullYear(),k=`ctr_${pfx}_${y}`,n=pa
 
 /* ─── Расчёт ──────────────────────────────────── */
 function calcTotal() {
-  const lines = [];
-  let total = 0;
-  let hasIndividual = false;
+  const baseLines = [];
+  let baseRaw = 0;
 
   if (A.isNull) {
     const price = A.entity === 'ИП' ? P.null_ip : P.null_ooo;
-    lines.push({ name:'Нулевая отчётность', price });
-    total += price;
-    return { total, lines, hasIndividual, urgent: A.urgent === 'yes' };
-  }
-
-  // База по нишам (можно выбрать несколько)
-  const nicheNames = {
-    marketplace:'Маркетплейс РВБ (любой первый)', wholesale:'Оптовая торговля',
-    retail:'Розничная торговля', production:'Производство',
-    construction:'Строительство', catering:'Общепит',
-    medicine:'Медицина', services:'Услуги прочие'
-  };
-  A.niches.forEach(niche => {
-    const nichePrice = P.niche[niche] || 0;
-    if (nichePrice) {
-      lines.push({ name: nicheNames[niche]||niche, price: nichePrice });
-      total += nichePrice;
-    }
-  });
-
-  // Маркетплейсы
-  if (A.niches.includes('marketplace')) {
-    const mpNames = { wb:'Wildberries', ozon:'Ozon', ya:'Яндекс Маркет' };
-    A.mp.forEach(m => {
-      const pr = P.niche[m]||0;
-      lines.push({ name: mpNames[m]||m, price: pr });
-      total += pr;
+    baseLines.push({ name:'Нулевая отчётность', price });
+    baseRaw = price;
+  } else {
+    const nicheNames = {
+      marketplace:'Маркетплейс РВБ (любой первый)', wholesale:'Оптовая торговля',
+      retail:'Розничная торговля', production:'Производство',
+      construction:'Строительство', catering:'Общепит',
+      medicine:'Медицина', services:'Услуги прочие'
+    };
+    A.niches.forEach(niche => {
+      const pr = P.niche[niche] || 0;
+      if (pr) { baseLines.push({ name: nicheNames[niche]||niche, price: pr }); baseRaw += pr; }
     });
-    if (A.mpInventory) {
-      lines.push({ name:'Товарный учёт', price: P.niche.mp_inventory });
-      total += P.niche.mp_inventory;
+
+    if (A.niches.includes('marketplace')) {
+      const mpNames = { wb:'Wildberries', ozon:'Ozon', ya:'Яндекс Маркет' };
+      A.mp.forEach(m => {
+        const pr = P.niche[m]||0;
+        baseLines.push({ name: mpNames[m]||m, price: pr }); baseRaw += pr;
+      });
+      if (A.mpInventory) { baseLines.push({ name:'Товарный учёт', price: P.niche.mp_inventory }); baseRaw += P.niche.mp_inventory; }
     }
-  }
 
-  // Товарный учёт для торговли
-  if (A.inventory) {
-    const invPrice = A.niches.includes('wholesale') ? P.niche.wh_inventory : P.niche.rt_inventory;
-    lines.push({ name:'Товарный учёт', price: invPrice });
-    total += invPrice;
-  }
-
-  // Доп. стоимость для ООО
-  if (A.entity === 'ООО' && !A.isNull) {
-    lines.push({ name:'ООО', price: P.entity_ooo });
-    total += P.entity_ooo;
-  }
-
-  // Система налогообложения
-  const taxNames = { patent:'Патент', ausn_d:'АУСН Доходы', ausn_dr:'АУСН Доходы-Расходы', usn6:'УСН 6%', usn15:'УСН 15%', osno:'ОСНО' };
-  const taxPrice = P.tax[A.tax] || 0;
-  if (taxPrice) {
-    lines.push({ name: taxNames[A.tax]||A.tax, price: taxPrice });
-    total += taxPrice;
-  }
-  // Патент дополнительно к УСН
-  if (A.addPatent && A.tax !== 'patent') {
-    lines.push({ name:'Патент (доп.)', price: P.tax.patent });
-    total += P.tax.patent;
-  }
-
-  // СПОТ
-  if (A.spot) {
-    const spotPrice = (Number(A.spotCount)||1) * 1000;
-    lines.push({ name:`СПОТ (${A.spotCount||1} док.)`, price: spotPrice });
-    total += spotPrice;
-  }
-
-  // НДС (мульти-выбор)
-  const vatNames = { не_облагается:'НДС не облагается', освобождение:'Освобождение от НДС (ст.145)', nds0:'НДС 0%', nds5:'НДС 5%', nds7:'НДС 7%', nds10:'НДС 10%', nds22:'НДС 22%' };
-  (A.vats||[]).forEach(v => {
-    const pr = P.vat[v] || 0;
-    if (pr) { lines.push({ name: vatNames[v]||v, price: pr }); total += pr; }
-    else if (v === 'не_облагается' || v === 'nds0') {
-      lines.push({ name: vatNames[v]||v, price: 0 });
+    if (A.inventory) {
+      const pr = A.niches.includes('wholesale') ? P.niche.wh_inventory : P.niche.rt_inventory;
+      baseLines.push({ name:'Товарный учёт', price: pr }); baseRaw += pr;
     }
-  });
 
-  // Сотрудники РФ
-  if (A.staffRf === 'rf_1_3') {
-    lines.push({ name:'Сотрудники РФ (1–3 чел.)', price: P.staff.rf_1_3 });
-    total += P.staff.rf_1_3;
-  } else if (A.staffRf === 'rf_more') {
-    const pr = P.staff.rf_per * A.rfCount;
-    lines.push({ name:`Сотрудники РФ (${A.rfCount} чел. × 1 500 ₽)`, price: pr });
-    total += pr;
+    if (A.entity === 'ООО') { baseLines.push({ name:'ООО', price: P.entity_ooo }); baseRaw += P.entity_ooo; }
+
+    const taxNames = { patent:'Патент', ausn_d:'АУСН Доходы', ausn_dr:'АУСН Доходы-Расходы', usn6:'УСН 6%', usn15:'УСН 15%', osno:'ОСНО' };
+    const taxPrice = P.tax[A.tax] || 0;
+    if (taxPrice) { baseLines.push({ name: taxNames[A.tax]||A.tax, price: taxPrice }); baseRaw += taxPrice; }
+    if (A.addPatent && A.tax !== 'patent') { baseLines.push({ name:'Патент (доп.)', price: P.tax.patent }); baseRaw += P.tax.patent; }
+
+    const vatNames = { не_облагается:'НДС не облагается', освобождение:'Освобождение от НДС (ст.145)', nds0:'НДС 0%', nds5:'НДС 5%', nds7:'НДС 7%', nds10:'НДС 10%', nds22:'НДС 22%' };
+    (A.vats||[]).forEach(v => {
+      const pr = P.vat[v] || 0;
+      if (pr) { baseLines.push({ name: vatNames[v]||v, price: pr }); baseRaw += pr; }
+      else if (v === 'не_облагается' || v === 'nds0') { baseLines.push({ name: vatNames[v]||v, price: 0 }); }
+    });
+
+    if (A.staffRf === 'rf_1_3') { baseLines.push({ name:'Сотрудники РФ (1–3 чел.)', price: P.staff.rf_1_3 }); baseRaw += P.staff.rf_1_3; }
+    else if (A.staffRf === 'rf_more') { const pr = P.staff.rf_per * A.rfCount; baseLines.push({ name:`Сотрудники РФ (${A.rfCount} чел. × 1 500 ₽)`, price: pr }); baseRaw += pr; }
+
+    if (A.staffForeign === 'yes') { const pr = P.staff.foreign * A.foreignCount; baseLines.push({ name:`Иностранные сотрудники (${A.foreignCount} чел. × 20 000 ₽)`, price: pr }); baseRaw += pr; }
+
+    if (A.cashKassa) { baseLines.push({ name:'Касса (ККМ)', price: P.cash.kassa }); baseRaw += P.cash.kassa; }
+    if (A.cashAvans) { baseLines.push({ name:'Авансовые отчёты', price: P.cash.avans }); baseRaw += P.cash.avans; }
+
+    if (A.ved)      { baseLines.push({ name:'ВЭД / Валютные расчёты', price: P.ved }); baseRaw += P.ved; }
+    if (A.reconcile){ baseLines.push({ name:'Сверки с контрагентами', price: P.reconcile }); baseRaw += P.reconcile; }
+    if (A.military) { const pr = P.military_per * A.militaryCount; baseLines.push({ name:`Воинский учёт (${A.militaryCount} чел. × 2 000 ₽)`, price: pr }); baseRaw += pr; }
+    if (A.licenses) { const pr = P.licenses * (A.licenseCount||1); baseLines.push({ name:`Лицензионная отчётность (${A.licenseCount||1} лиц.)`, price: pr }); baseRaw += pr; }
+    if (A.spot)     { const pr = (A.spotCount||1) * 1000; baseLines.push({ name:`СПОТ (${A.spotCount||1} док.)`, price: pr }); baseRaw += pr; }
   }
 
-  // Иностранцы
-  if (A.staffForeign === 'yes') {
-    const pr = P.staff.foreign * A.foreignCount;
-    lines.push({ name:`Иностранные сотрудники (${A.foreignCount} чел. × 20 000 ₽)`, price: pr });
-    total += pr;
-  }
-
-  // Наличные
-  if (A.cashKassa) { lines.push({ name:'Касса (ККМ)', price: P.cash.kassa }); total += P.cash.kassa; }
-  if (A.cashAvans) { lines.push({ name:'Авансовые отчёты', price: P.cash.avans }); total += P.cash.avans; }
-
-  // Доп. услуги
-  if (A.ved)       { lines.push({ name:'ВЭД / Валютные расчёты', price: P.ved }); total += P.ved; }
-  if (A.reconcile) { lines.push({ name:'Сверки с контрагентами', price: P.reconcile }); total += P.reconcile; }
-  if (A.taxMgmt)   { lines.push({ name:'Налоговый менеджмент', price: P.tax_mgmt }); total += P.tax_mgmt; }
-  if (A.military)  {
-    const pr = P.military_per * A.militaryCount;
-    lines.push({ name:`Воинский учёт (${A.militaryCount} чел. × 2 000 ₽)`, price: pr });
-    total += pr;
-  }
-  if (A.licenses)  { lines.push({ name:'Лицензионная отчётность', price: P.licenses }); total += P.licenses; }
-  if (A.mgmtAcc)   { lines.push({ name:'Управленческий учёт', price:0, individual:true }); hasIndividual = true; }
-  if (A.officeBuh) { lines.push({ name:'Выделенный бухгалтер в офис', price:0, individual:true }); hasIndividual = true; }
-
-  // Скидка
+  // Скидка применяется к базе
   const disc = Number(A.discount) || 0;
-  if (disc > 0) total = Math.round(total * (1 - disc / 100));
+  const baseTotal = disc > 0 ? Math.round(baseRaw * (1 - disc / 100)) : baseRaw;
 
-  return { total, lines, hasIndividual };
+  // Стандарт-надбавки
+  const priorityPrice = A.priorityManager ? Math.round(baseTotal * 0.2) : 0;
+  const taxMgmtPrice  = A.taxMgmt  ? P.tax_mgmt : 0;
+  const officeBuhPrice = A.officeBuh ? (A.officeBuhDays || 5) * 7500 : 0;
+  const standardTotal = baseTotal + priorityPrice + taxMgmtPrice + officeBuhPrice;
+
+  const standardLines = [
+    { name:'Приоритетная скорость ответа менеджера', selected: A.priorityManager, price: priorityPrice,
+      detail: A.priorityManager ? `+20% от базы` : '' },
+    { name:'Налоговый менеджмент', selected: A.taxMgmt, price: taxMgmtPrice },
+    { name: A.officeBuh ? `Бухгалтер в офисе (${A.officeBuhDays} дн./нед.)` : 'Бухгалтер в офисе',
+      selected: A.officeBuh, price: officeBuhPrice },
+  ];
+
+  // Оптима
+  const optimaLines = MGMT_ACC_ITEMS_ALL.map(name => ({
+    name, selected: A.mgmtAcc && (A.mgmtAccItems||[]).includes(name)
+  }));
+  const optimaTotal = baseTotal + OPTIMA_BASE_PRICE;
+
+  // Обратная совместимость (договор, счёт берут lines/total)
+  return {
+    total: baseTotal, lines: baseLines, hasIndividual: false,
+    baseTotal, baseLines,
+    standardLines, standardTotal,
+    optimaLines, optimaTotal,
+    disc,
+  };
 }
 
 /* ─── Обновление итога в реальном времени ─────── */
@@ -349,19 +338,41 @@ function goBack() {
   if (prev >= 1) showStep(prev);
 }
 
-// Логика пропуска шагов (шаг 10 удалён)
 function nextStepNum(n) {
-  if (n === 2 && A.isNull) return 11; // нулёвка → пропустить 3-9
-  if (n === 4 && !A.niches.includes('marketplace')) return 6; // не маркетплейс → пропустить шаг 5
-  if (n === 9) return 11; // шаг 10 убран
+  if (n === 2 && A.isNull) return 11;
+  if (n === 4 && !A.niches.includes('marketplace')) return 6;
+  if (n === 9)  return 10; // → Приоритетная скорость
+  if (n === 10) return (['ausn_dr','usn15','osno'].includes(A.tax)) ? 13 : 14;
+  if (n === 13) return 14; // → Бухгалтер
+  if (n === 14) return 15; // → Управленческий учёт
+  if (n === 15) return A.mgmtAcc ? 16 : 11;
+  if (n === 16) return 11;
   return n + 1;
 }
 
 function prevStepNum(n) {
-  if (n === 6 && !A.niches.includes('marketplace')) return 4;
-  if (n === 11 && A.isNull) return 2;
-  if (n === 11) return 9;
+  if (n === 6  && !A.niches.includes('marketplace')) return 4;
+  if (n === 10) return 9;
+  if (n === 13) return 10;
+  if (n === 14) return (['ausn_dr','usn15','osno'].includes(A.tax)) ? 13 : 10;
+  if (n === 15) return 14;
+  if (n === 16) return 15;
+  if (n === 11 && A.isNull)   return 2;
+  if (n === 11 && A.mgmtAcc)  return 16;
+  if (n === 11)                return 15;
   return n - 1;
+}
+
+function computeStepPath() {
+  if (A.isNull) return [1,2,11,12];
+  const path = [1,2,3,4];
+  if (A.niches.includes('marketplace')) path.push(5);
+  path.push(6,7,8,9,10);
+  if (['ausn_dr','usn15','osno'].includes(A.tax)) path.push(13);
+  path.push(14,15);
+  if (A.mgmtAcc) path.push(16);
+  path.push(11,12);
+  return path;
 }
 
 function showStep(n) {
@@ -372,9 +383,10 @@ function showStep(n) {
   sl.classList.add('active');
   if (back) sl.classList.add('back');
 
-  // Прогресс — считаем визуально линейно
-  const visual = visualStep(n);
-  const totalVisual = A.isNull ? 4 : (A.niches.includes('marketplace') ? 11 : 10);
+  // Прогресс — считаем по реальному пути
+  const path = computeStepPath();
+  const visual = path.indexOf(n) + 1;
+  const totalVisual = path.length;
   document.getElementById('step-label').textContent = `Шаг ${visual} из ${totalVisual}`;
   document.getElementById('prog-fill').style.width = `${Math.min((visual / totalVisual) * 100, 100)}%`;
 
@@ -440,18 +452,34 @@ function collectStep(n) {
     A.cashAvans = document.getElementById('cash-avans').checked;
   }
   if (n===9)  {
-    A.ved       = document.getElementById('add-ved').checked;
-    A.reconcile = document.getElementById('add-reconcile').checked;
-    A.taxMgmt   = document.getElementById('add-taxmgmt').checked;
-    A.military  = document.getElementById('add-military').checked;
+    A.ved         = document.getElementById('add-ved').checked;
+    A.reconcile   = document.getElementById('add-reconcile').checked;
+    A.military    = document.getElementById('add-military').checked;
     A.militaryCount = parseInt(document.getElementById('military-count').value)||1;
-    A.licenses  = document.getElementById('add-licenses').checked;
-    A.spot      = document.getElementById('add-spot').checked;
-    A.spotCount = parseInt(document.getElementById('spot-count').value)||1;
-    A.mgmtAcc   = document.getElementById('add-mgmt-acc').checked;
-    A.officeBuh = document.getElementById('add-office-buh').checked;
-    A.inventory = document.getElementById('add-inventory') ? document.getElementById('add-inventory').checked : false;
+    A.licenses    = document.getElementById('add-licenses').checked;
+    A.licenseCount = parseInt(document.getElementById('license-count').value)||1;
+    A.spot        = document.getElementById('add-spot').checked;
+    A.spotCount   = parseInt(document.getElementById('spot-count').value)||1;
+    A.inventory   = document.getElementById('add-inventory') ? document.getElementById('add-inventory').checked : false;
   }
+  if (n===10) {
+    const s = document.querySelector('#g-priority .selected');
+    if (s) A.priorityManager = s.dataset.val === 'yes';
+  }
+  if (n===13) {
+    const s = document.querySelector('#g-taxmgmt .selected');
+    if (s) A.taxMgmt = s.dataset.val === 'yes';
+  }
+  if (n===14) {
+    const s = document.querySelector('#g-office-buh .selected');
+    if (s) A.officeBuh = s.dataset.val === 'yes';
+    A.officeBuhDays = parseInt(document.getElementById('office-buh-days').value)||5;
+  }
+  if (n===15) {
+    const s = document.querySelector('#g-mgmt-acc .selected');
+    if (s) A.mgmtAcc = s.dataset.val === 'yes';
+  }
+  if (n===16) { collectMgmtItems(); }
   if (n===11) {
     A.name     = (document.getElementById('f-name').value||'').trim();
     A.director = (document.getElementById('f-director').value||'').trim();
@@ -487,20 +515,44 @@ function restoreStep(n) {
     document.getElementById('cash-avans').checked = A.cashAvans;
   }
   if (n===9)  {
-    document.getElementById('add-ved').checked       = A.ved;
-    document.getElementById('add-reconcile').checked = A.reconcile;
-    document.getElementById('add-taxmgmt').checked   = A.taxMgmt;
-    document.getElementById('add-military').checked  = A.military;
-    document.getElementById('military-count').value  = A.militaryCount;
-    document.getElementById('military-count-row').style.display = A.military?'flex':'none';
-    document.getElementById('add-licenses').checked  = A.licenses;
+    document.getElementById('add-ved').checked        = A.ved;
+    document.getElementById('add-reconcile').checked  = A.reconcile;
+    document.getElementById('add-military').checked   = A.military;
+    document.getElementById('military-count').value   = A.militaryCount;
+    document.getElementById('military-count-row').style.display = A.military ? 'flex' : 'none';
+    document.getElementById('add-licenses').checked   = A.licenses;
+    document.getElementById('license-count').value    = A.licenseCount;
+    document.getElementById('license-count-row').style.display  = A.licenses ? 'flex' : 'none';
     document.getElementById('add-spot').checked       = A.spot;
     document.getElementById('spot-count').value       = A.spotCount;
-    document.getElementById('spot-count-row').style.display = A.spot?'flex':'none';
-    document.getElementById('add-mgmt-acc').checked  = A.mgmtAcc;
-    document.getElementById('add-office-buh').checked = A.officeBuh;
+    document.getElementById('spot-count-row').style.display     = A.spot ? 'flex' : 'none';
     const inv = document.getElementById('add-inventory');
     if (inv) inv.checked = A.inventory;
+  }
+  if (n===10) {
+    const restorePick10 = (val) => document.querySelectorAll('#g-priority .ccard').forEach(b => b.classList.toggle('selected', b.dataset.val === val));
+    restorePick10(A.priorityManager ? 'yes' : 'no');
+  }
+  if (n===13) {
+    const restorePick13 = (val) => document.querySelectorAll('#g-taxmgmt .ccard').forEach(b => b.classList.toggle('selected', b.dataset.val === val));
+    restorePick13(A.taxMgmt ? 'yes' : 'no');
+  }
+  if (n===14) {
+    const restorePick14 = (val) => document.querySelectorAll('#g-office-buh .ccard').forEach(b => b.classList.toggle('selected', b.dataset.val === val));
+    restorePick14(A.officeBuh ? 'yes' : 'no');
+    document.getElementById('office-buh-days').value = A.officeBuhDays;
+    document.getElementById('office-buh-days-row').style.display = A.officeBuh ? 'flex' : 'none';
+  }
+  if (n===15) {
+    const restorePick15 = (val) => document.querySelectorAll('#g-mgmt-acc .ccard').forEach(b => b.classList.toggle('selected', b.dataset.val === val));
+    restorePick15(A.mgmtAcc ? 'yes' : 'no');
+  }
+  if (n===16) {
+    const map = { 'mgmt-dds-odds':'ДДС и ОДДС', 'mgmt-pl':'P&L', 'mgmt-budget':'Бюджетирование', 'mgmt-contractors':'Работа с контрагентами по задолженностям и сбор документов' };
+    Object.entries(map).forEach(([id, val]) => {
+      const el = document.getElementById(id);
+      if (el) el.checked = A.mgmtAccItems.includes(val);
+    });
   }
   if (n===3)  {
     const patentRow = document.getElementById('add-patent-row');
@@ -532,6 +584,7 @@ function validateStep(n) {
     if (!document.querySelector('#g-staff-rf .selected'))      { setErr('err-staff','Укажите сотрудников РФ'); return false; }
     if (!document.querySelector('#g-staff-foreign .selected')) { setErr('err-staff','Укажите иностранных сотрудников'); return false; }
   }
+  if (n===10) { if (!document.querySelector('#g-priority .selected')) { setErr('err-priority','Выберите вариант'); return false; } }
   if (n===11) {
     const name=document.getElementById('f-name').value.trim();
     if (!name) { setErr('err-name','Введите название компании или ФИО'); document.getElementById('f-name').classList.add('input-err'); return false; }
@@ -605,22 +658,75 @@ function spotToggle() {
   updateTotal();
 }
 
+function licensesToggle() {
+  const checked = document.getElementById('add-licenses').checked;
+  const row = document.getElementById('license-count-row');
+  if (row) row.style.display = checked ? 'flex' : 'none';
+  updateTotal();
+}
+
+function pickOfficeBuh(btn) {
+  document.querySelectorAll('#g-office-buh .ccard').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  collectCurrent();
+  const daysRow = document.getElementById('office-buh-days-row');
+  if (daysRow) daysRow.style.display = A.officeBuh ? 'flex' : 'none';
+  updateTotal();
+}
+
+const MGMT_CHECKBOX_IDS = ['mgmt-dds-odds','mgmt-pl','mgmt-budget','mgmt-contractors'];
+
+function collectMgmtItems() {
+  A.mgmtAccItems = MGMT_ACC_ITEMS_ALL.filter((name, i) => {
+    const el = document.getElementById(MGMT_CHECKBOX_IDS[i]);
+    return el && el.checked;
+  });
+  updateTotal();
+}
+
 /* ─── Сводка (шаг 12) ────────────────────────── */
 function buildSummary() {
   collectStep(11);
-  const { total, lines, hasIndividual } = calcTotal();
+  const res = calcTotal();
 
-  document.getElementById('sum-total').textContent = fmt(total) + (hasIndividual ? '+' : '');
-  document.getElementById('sum-individual-note').style.display = hasIndividual ? 'block' : 'none';
-
-  const disc = Number(A.discount) || 0;
+  // Базовый блок
+  const disc = res.disc;
   const linesEl = document.getElementById('sum-lines');
-  linesEl.innerHTML = lines.map(l =>
+  linesEl.innerHTML = res.baseLines.map(l =>
     `<div class="sum-line">
       <span class="sum-line-name">${esc(l.name)}</span>
-      <span class="sum-line-price ${l.individual?'individual':''}">${l.individual ? 'индивидуально' : fmt(l.price)}</span>
+      <span class="sum-line-price">${fmt(l.price)}</span>
     </div>`
   ).join('') + (disc > 0 ? `<div class="sum-modifier"><span>Скидка ${disc}%</span><span>−${disc}%</span></div>` : '');
+
+  document.getElementById('sum-total').textContent = fmt(res.baseTotal);
+  const indNote = document.getElementById('sum-individual-note');
+  if (indNote) indNote.style.display = 'none';
+
+  // Стандарт блок
+  const stdEl = document.getElementById('sum-standard');
+  if (stdEl) {
+    const stdItems = res.standardLines.map(l =>
+      `<div class="sum-line sum-line--extra">
+        <span class="sum-line-check">${l.selected ? '✓' : '☐'}</span>
+        <span class="sum-line-name">${esc(l.name)}</span>
+        ${l.selected && l.price ? `<span class="sum-line-price">+${fmt(l.price)}</span>` : ''}
+      </div>`
+    ).join('');
+    stdEl.innerHTML = stdItems + `<div class="sum-line sum-line--total"><span>Итого Стандарт</span><span>${fmt(res.standardTotal)} ₽/мес</span></div>`;
+  }
+
+  // Оптима блок
+  const optEl = document.getElementById('sum-optima');
+  if (optEl) {
+    const optItems = res.optimaLines.map(l =>
+      `<div class="sum-line sum-line--extra">
+        <span class="sum-line-check">${l.selected ? '✓' : '☐'}</span>
+        <span class="sum-line-name">${esc(l.name)}</span>
+      </div>`
+    ).join('');
+    optEl.innerHTML = optItems + `<div class="sum-line sum-line--total"><span>Итого Оптима</span><span>от ${fmt(res.optimaTotal)} ₽/мес</span></div>`;
+  }
 
   const taxNames = { patent:'Патент', ausn_d:'АУСН Доходы', ausn_dr:'АУСН Доходы-Расходы', usn6:'УСН 6%', usn15:'УСН 15%', osno:'ОСНО' };
   document.getElementById('sum-params').innerHTML = `
@@ -636,7 +742,8 @@ let lastKP = null, lastContract = null, lastInvoice = null;
 function generateKP() {
   collectStep(11);
   clearErrs();
-  const { total, lines, hasIndividual } = calcTotal();
+  const res = calcTotal();
+  const { total, lines, hasIndividual, baseTotal, baseLines, standardTotal, standardLines, optimaTotal, optimaLines } = res;
   if (!A.name) {
     setErr('err-final','Введите название клиента — вернитесь на шаг 11');
     return;
@@ -644,7 +751,7 @@ function generateKP() {
   // Guard: не инкрементировать счётчик при повторном вызове
   const kpNum = lastKP ? lastKP.kpNum : nextNum('КП');
   const kpText = buildKPText(total, lines, hasIndividual, kpNum);
-  lastKP = { text:kpText, kpNum, total, lines, hasIndividual };
+  lastKP = { text:kpText, kpNum, total, lines, hasIndividual, baseTotal, baseLines, standardTotal, standardLines, optimaTotal, optimaLines };
 
   document.getElementById('kp-meta').textContent = `${kpNum} · ${todayLong()}`;
   document.getElementById('kp-preview').textContent = kpText;
@@ -677,7 +784,7 @@ function generateContract() {
 function downloadKP() {
   if (!lastKP) { showToast('КП не сформировано'); return; }
   showToast('Формируем файл...');
-  buildKPDocx(EX, {name: A.name, inn: A.req.inn, director: A.director}, lastKP.lines, lastKP.total, lastKP.kpNum)
+  buildKPDocx(EX, {name: A.name, inn: A.req.inn, director: A.director}, lastKP)
     .then(b => { downloadBlob(b, `КП_${safeF(A.name)}_${todayFile()}.docx`); showToast('КП скачивается'); saveToCloud(); })
     .catch(e => { console.error('KP docx error:', e); showToast('Ошибка формирования файла'); });
 }
@@ -711,10 +818,13 @@ function newQuiz() {
     mp:[], mpInventory:false, vats:[],
     staffRf:'none', rfCount:4, staffForeign:'none', foreignCount:1,
     cashKassa:false, cashAvans:false,
-    ved:false, reconcile:false, taxMgmt:false,
-    military:false, militaryCount:1, licenses:false, spot:false, spotCount:1,
-    mgmtAcc:false, officeBuh:false,
+    ved:false, reconcile:false,
+    military:false, militaryCount:1, licenses:false, licenseCount:1, spot:false, spotCount:1,
     inventory:false, addPatent:false,
+    priorityManager:false,
+    taxMgmt:false,
+    officeBuh:false, officeBuhDays:5,
+    mgmtAcc:false, mgmtAccItems:[],
     discount:0, kpValidDays:5,
     name:'', director:'',
     req:{ inn:'', kpp:'', address:'', phone:'', email:'', rs:'', bank:'', bik:'', ks:'', ogrn:'', director:'' }
@@ -966,52 +1076,60 @@ function _tbl(colWidths, rows) {
 function _fmt(n) { return new Intl.NumberFormat('ru-RU').format(Math.round(n||0)); }
 
 /* ─── КП ────────────────────────────────────────── */
-async function buildKPDocx(ex, client, services, total, kpNum) {
-  const disc = Number(A.discount) || 0;
+async function buildKPDocx(ex, client, kpData) {
+  const { kpNum, baseTotal, baseLines, standardTotal, standardLines, optimaTotal, optimaLines } = kpData;
   const validDate = new Date();
   validDate.setDate(validDate.getDate() + (Number(A.kpValidDays) || 5));
+  const fmtN = n => new Intl.NumberFormat('ru-RU').format(Math.round(n || 0));
+  const chk  = selected => selected ? '✓' : '☐';
 
-  const fmtN = function(n) {
-    return new Intl.NumberFormat('ru-RU').format(Math.round(n || 0));
-  };
+  // Базовые услуги — только выбранные, нумерация по порядку
+  const baseServices = (baseLines || []).map((l, i) => ({
+    idx:   String(i + 1),
+    name:  l.name || '',
+    check: '✓',
+  }));
+
+  // Стандарт — фиксированный список, галочки из A
+  const stdLines = standardLines || [];
+  const checkPriority  = chk(A.priorityManager);
+  const checkTaxMgmt   = chk(A.taxMgmt);
+  const checkOfficeBuh = chk(A.officeBuh);
+  const officeDaysStr  = A.officeBuh ? ` — ${A.officeBuhDays || 5} рабочих дня/дней` : '';
+
+  // Оптима — управленческий учёт
+  const mgmtItems = A.mgmtAccItems || [];
+  const checkMgmtAcc    = chk(A.mgmtAcc);
+  const checkDDSODDS    = chk(A.mgmtAcc && mgmtItems.includes('ДДС и ОДДС'));
+  const checkPL         = chk(A.mgmtAcc && mgmtItems.includes('P&L'));
+  const checkBudget     = chk(A.mgmtAcc && mgmtItems.includes('Бюджетирование'));
+  const checkContractors = chk(A.mgmtAcc && mgmtItems.includes('Работа с контрагентами по задолженностям и сбор документов'));
 
   const data = {
-    kp_number:        String(kpNum),
-    kp_date:          new Date().toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit', year:'numeric'}),
-    client_name:      client.name || '',
-    client_director:  client.director || '',
-    services:         services.map(function(s, i) {
-      return {
-        index: String(i + 1),
-        name:  s.name || '',
-        price: s.individual ? 'индивидуально' : fmtN(s.price || 0) + ' ₽',
-      };
-    }),
-    show_discount:    disc > 0,
-    discount_percent: disc > 0 ? String(disc) : '',
-    discount_amount:  disc > 0 ? fmtN(Math.round(total / (1 - disc / 100) * disc / 100)) : '',
-    total_amount:     fmtN(total),
-    valid_until:      validDate.toLocaleDateString('ru-RU', {day:'2-digit', month:'long', year:'numeric'}),
-    // Исполнитель
-    ex_name:      ex.name || '',
-    ex_short:     (ex.name || '').replace(/^ООО\s*[«"'](.+)[»"']$/, '$1').trim(),
-    ex_fullname:  ex.name || '',
-    ex_inn:       ex.inn || '',
-    ex_kpp:       ex.kpp || '',
-    ex_ogrn:      ex.ogrn || '',
-    ex_address:   ex.address || '',
-    ex_phone:     ex.phone || '',
-    ex_email:     ex.email || '',
-    ex_bank:      ex.bank || '',
-    ex_rs:        ex.rs || '',
-    ex_bik:       ex.bik || '',
-    ex_ks:        ex.ks || '',
-    ex_director:  ex.director || '',
-    ex_dir_short: ex.dirShort || '',
-    ex_director_gen: ex.directorGen || ex.director || '',
+    kpNum:         String(kpNum),
+    clientName:    client.name || '',
+    director:      client.director || '',
+    // Базовый блок
+    baseServices,
+    baseTotal:     fmtN(baseTotal),
+    // Стандарт
+    checkPriority,
+    checkTaxMgmt,
+    checkOfficeBuh,
+    officeDaysStr,
+    standardTotal: fmtN(standardTotal),
+    // Оптима
+    checkMgmtAcc,
+    checkDDSODDS,
+    checkPL,
+    checkBudget,
+    checkContractors,
+    optimaTotal:   fmtN(optimaTotal),
+    // Прочее
+    validDate: validDate.toLocaleDateString('ru-RU', {day:'2-digit', month:'long', year:'numeric'}),
   };
 
-  return _fillDocxTemplate('KP_template.docx', data);
+  return _fillDocxTemplate('KP_template_v4.docx', data);
 }
 
 /* ─── Хелпер docxtemplater ───────────────────────── */
@@ -1093,7 +1211,9 @@ async function buildInvoiceDocx(ex, client, services, total, invNum) {
   const subtotal = filt.reduce(function(s,x){ return s+(x.price||0); }, 0);
   const disc = Number(A.discount) || 0;
   const discAmount = disc > 0 ? Math.round(subtotal * disc / 100) : 0;
-  const finalTotal = disc > 0 ? Math.round(subtotal * (1 - disc / 100)) : subtotal;
+  const fullTotal = disc > 0 ? Math.round(subtotal * (1 - disc / 100)) : subtotal;
+  // Счёт выставляется на сумму предоплаты
+  const finalTotal = PREPAYMENT_AMOUNT;
   const fmtN = function(n){ return new Intl.NumberFormat('ru-RU',{minimumFractionDigits:0,maximumFractionDigits:0}).format(n||0); };
   const fmtI = function(n){ return new Intl.NumberFormat('ru-RU').format(Math.round(n||0)); };
 
@@ -1104,18 +1224,11 @@ async function buildInvoiceDocx(ex, client, services, total, invNum) {
     client_inn: client.inn || '',
     client_address: client.address || '',
     client_phone: client.phone || '',
-    services: filt.map(function(s,i){ return {
-      index: String(i+1),
-      service_name: s.name || '',
-      quantity: '1',
-      unit: 'усл.',
-      price: fmtN(s.price||0),
-      sum: fmtN(s.price||0),
-    }; }),
-    subtotal_amount:  fmtN(subtotal),
-    show_discount:    disc > 0,
-    discount_percent: disc > 0 ? String(disc) : '',
-    discount_amount:  disc > 0 ? fmtI(discAmount) : '',
+    services: [{ index: '1', service_name: 'Предоплата за бухгалтерское обслуживание', quantity: '1', unit: 'усл.', price: fmtN(finalTotal), sum: fmtN(finalTotal) }],
+    subtotal_amount:  fmtN(finalTotal),
+    show_discount:    false,
+    discount_percent: '',
+    discount_amount:  '',
     total_amount:     fmtN(finalTotal),
     total_amount_words: _rubles2words(finalTotal).replace(/ \d{2} коп\.$/, ''),
     // Исполнитель
@@ -1296,7 +1409,7 @@ async function saveToCloud() {
   try {
     console.log('[saveToCloud] старт, payload:', JSON.stringify(payload).slice(0, 200));
 
-    var kpBlob = await buildKPDocx(EX, {name:A.name, inn:A.req.inn, director:A.director}, lastKP.lines, lastKP.total, lastKP.kpNum);
+    var kpBlob = await buildKPDocx(EX, {name:A.name, inn:A.req.inn, director:A.director}, lastKP);
     payload.kpBase64 = await _blobToBase64(kpBlob);
     payload.kpName   = 'КП_' + safeF(A.name) + '_' + todayFile() + '.docx';
     console.log('[saveToCloud] КП готов, размер base64:', payload.kpBase64.length);
