@@ -328,7 +328,7 @@ function goNext() {
   collectStep(step);
   back = false;
   const next = nextStepNum(step);
-  if (next <= STEPS) showStep(next);
+  showStep(next);
 }
 
 function goBack() {
