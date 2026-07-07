@@ -273,7 +273,7 @@ function calcTotal() {
 
   // Стандарт-надбавки
   const priorityPrice = A.priorityManager ? Math.round(baseTotal * 0.2) : 0;
-  const taxMgmtPrice  = A.taxMgmt  ? P.tax_mgmt : 0;
+  const taxMgmtPrice  = A.taxMgmt && ['ausn_dr','usn15','osno'].includes(A.tax) ? P.tax_mgmt : 0;
   const officeBuhPrice = A.officeBuh ? (A.officeBuhDays || 5) * 4 * 7500 : 0;
   const standardTotal = baseTotal + priorityPrice + taxMgmtPrice + officeBuhPrice;
 
@@ -423,6 +423,7 @@ function collectStep(n) {
   if (n===2)  { const s=document.querySelector('#g-null .selected'); if(s) A.isNull=s.dataset.val==='yes'; }
   if (n===3)  {
     const s=document.querySelector('#g-tax .selected'); if(s) A.tax=s.dataset.val;
+    if (!['ausn_dr','usn15','osno'].includes(A.tax)) A.taxMgmt = false;
     const ap=document.getElementById('add-patent'); if(ap) A.addPatent=ap.checked;
   }
   if (n===4)  {
