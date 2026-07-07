@@ -162,6 +162,18 @@
           </button>
         </div>
         <span class="q-err" id="err-niche"></span>
+        <div id="wh-inventory-block" style="display:none;margin-top:12px">
+          <label class="chk-label">
+            <input type="checkbox" id="add-wh-inventory" onchange="updateTotal()"/>
+            <span>в т.ч. товарный учёт (оптовая торговля) <strong>+10 000 ₽</strong></span>
+          </label>
+        </div>
+        <div id="rt-inventory-block" style="display:none">
+          <label class="chk-label">
+            <input type="checkbox" id="add-rt-inventory" onchange="updateTotal()"/>
+            <span>в т.ч. товарный учёт (розничная торговля) <strong>+15 000 ₽</strong></span>
+          </label>
+        </div>
       </div>
 
       <!-- ШАГ 5: Маркетплейсы (только если маркетплейс) -->
@@ -337,19 +349,6 @@
             <label class="q-label">Количество документов СПОТ</label>
             <input class="q-input num-input" type="number" id="spot-count" min="1" value="1" onchange="updateTotal()"/>
           </div>
-        </div>
-        <div id="wh-inventory-block" style="display:none">
-          <div class="sep"></div>
-          <label class="chk-label">
-            <input type="checkbox" id="add-wh-inventory" onchange="updateTotal()"/>
-            <span>в т.ч. товарный учёт (оптовая торговля) <strong>+10 000 ₽</strong></span>
-          </label>
-        </div>
-        <div id="rt-inventory-block" style="display:none">
-          <label class="chk-label">
-            <input type="checkbox" id="add-rt-inventory" onchange="updateTotal()"/>
-            <span>в т.ч. товарный учёт (розничная торговля) <strong>+15 000 ₽</strong></span>
-          </label>
         </div>
       </div>
 

@@ -425,7 +425,11 @@ function collectStep(n) {
     const s=document.querySelector('#g-tax .selected'); if(s) A.tax=s.dataset.val;
     const ap=document.getElementById('add-patent'); if(ap) A.addPatent=ap.checked;
   }
-  if (n===4)  { A.niches = [...document.querySelectorAll('#g-niche .selected')].map(b=>b.dataset.val); }
+  if (n===4)  {
+    A.niches = [...document.querySelectorAll('#g-niche .selected')].map(b=>b.dataset.val);
+    A.whInventory = document.getElementById('add-wh-inventory') ? document.getElementById('add-wh-inventory').checked : false;
+    A.rtInventory = document.getElementById('add-rt-inventory') ? document.getElementById('add-rt-inventory').checked : false;
+  }
   if (n===5)  {
     A.mp = [...document.querySelectorAll('#g-mp .selected')].map(b=>b.dataset.val);
     A.mpInventory = document.getElementById('mp-inventory').checked;
@@ -450,8 +454,6 @@ function collectStep(n) {
     A.licenseCount = parseInt(document.getElementById('license-count').value)||1;
     A.spot        = document.getElementById('add-spot').checked;
     A.spotCount   = parseInt(document.getElementById('spot-count').value)||1;
-    A.whInventory = document.getElementById('add-wh-inventory') ? document.getElementById('add-wh-inventory').checked : false;
-    A.rtInventory = document.getElementById('add-rt-inventory') ? document.getElementById('add-rt-inventory').checked : false;
   }
   if (n===10) {
     const s = document.querySelector('#g-priority .selected');
@@ -489,7 +491,12 @@ function restoreStep(n) {
   if (n===1)  restorePick('g-entity', A.entity);
   if (n===2)  restorePick('g-null', A.isNull?'yes':'no');
   if (n===3)  restorePick('g-tax', A.tax);
-  if (n===4)  document.querySelectorAll('#g-niche .ncard').forEach(b => b.classList.toggle('selected', A.niches.includes(b.dataset.val)));
+  if (n===4)  {
+    document.querySelectorAll('#g-niche .ncard').forEach(b => b.classList.toggle('selected', A.niches.includes(b.dataset.val)));
+    updateNicheInventory();
+    const whInv = document.getElementById('add-wh-inventory'); if (whInv) whInv.checked = A.whInventory;
+    const rtInv = document.getElementById('add-rt-inventory'); if (rtInv) rtInv.checked = A.rtInventory;
+  }
   if (n===5)  {
     document.querySelectorAll('#g-mp .ccard').forEach(b => b.classList.toggle('selected', A.mp.includes(b.dataset.val)));
     document.getElementById('mp-inventory').checked = A.mpInventory;
@@ -519,14 +526,6 @@ function restoreStep(n) {
     document.getElementById('add-spot').checked       = A.spot;
     document.getElementById('spot-count').value       = A.spotCount;
     document.getElementById('spot-count-row').style.display     = A.spot ? 'flex' : 'none';
-    const whBlock = document.getElementById('wh-inventory-block');
-    const rtBlock = document.getElementById('rt-inventory-block');
-    if (whBlock) whBlock.style.display = A.niches.includes('wholesale') ? 'block' : 'none';
-    if (rtBlock) rtBlock.style.display = A.niches.includes('retail')    ? 'block' : 'none';
-    const whInv = document.getElementById('add-wh-inventory');
-    if (whInv) whInv.checked = A.whInventory;
-    const rtInv = document.getElementById('add-rt-inventory');
-    if (rtInv) rtInv.checked = A.rtInventory;
   }
   if (n===10) {
     const restorePick10 = (val) => document.querySelectorAll('#g-priority .ccard').forEach(b => b.classList.toggle('selected', b.dataset.val === val));
@@ -633,7 +632,24 @@ function setDiscount(pct, btn) {
 function toggleMulti(btn) {
   btn.classList.toggle('selected');
   collectCurrent();
+  updateNicheInventory();
   updateTotal();
+}
+
+function updateNicheInventory() {
+  const niches = [...document.querySelectorAll('#g-niche .selected')].map(b => b.dataset.val);
+  const whBlock = document.getElementById('wh-inventory-block');
+  const rtBlock = document.getElementById('rt-inventory-block');
+  if (whBlock) {
+    const show = niches.includes('wholesale');
+    whBlock.style.display = show ? 'block' : 'none';
+    if (!show) { const cb = document.getElementById('add-wh-inventory'); if (cb) { cb.checked = false; A.whInventory = false; } }
+  }
+  if (rtBlock) {
+    const show = niches.includes('retail');
+    rtBlock.style.display = show ? 'block' : 'none';
+    if (!show) { const cb = document.getElementById('add-rt-inventory'); if (cb) { cb.checked = false; A.rtInventory = false; } }
+  }
 }
 
 function cashNoneToggle() {
