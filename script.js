@@ -160,7 +160,7 @@ const A = {
   military:false, militaryCount:1,
   licenses:false, licenseCount:1,
   spot:false, spotCount:1,
-  inventory:false, addPatent:false,
+  whInventory:false, rtInventory:false, addPatent:false,
   // Стандарт (новые шаги)
   priorityManager:false,
   taxMgmt:false,
@@ -224,6 +224,9 @@ function calcTotal() {
     A.niches.forEach(niche => {
       const pr = P.niche[niche] || 0;
       if (pr) { baseLines.push({ name: nicheNames[niche]||niche, price: pr }); baseRaw += pr; }
+      // Товарный учёт идёт сразу под нишей — как в прайсе «в т.ч.»
+      if (niche === 'wholesale' && A.whInventory) { baseLines.push({ name: 'в т.ч. товарный учёт', price: P.niche.wh_inventory }); baseRaw += P.niche.wh_inventory; }
+      if (niche === 'retail'    && A.rtInventory) { baseLines.push({ name: 'в т.ч. товарный учёт', price: P.niche.rt_inventory }); baseRaw += P.niche.rt_inventory; }
     });
 
     if (A.niches.includes('marketplace')) {
@@ -233,11 +236,6 @@ function calcTotal() {
         baseLines.push({ name: mpNames[m]||m, price: pr }); baseRaw += pr;
       });
       if (A.mpInventory) { baseLines.push({ name:'Товарный учёт', price: P.niche.mp_inventory }); baseRaw += P.niche.mp_inventory; }
-    }
-
-    if (A.inventory) {
-      const pr = A.niches.includes('wholesale') ? P.niche.wh_inventory : P.niche.rt_inventory;
-      baseLines.push({ name:'Товарный учёт', price: pr }); baseRaw += pr;
     }
 
     if (A.entity === 'ООО') { baseLines.push({ name:'ООО', price: P.entity_ooo }); baseRaw += P.entity_ooo; }
@@ -296,6 +294,7 @@ function calcTotal() {
   // Обратная совместимость (договор, счёт берут lines/total)
   return {
     total: baseTotal, lines: baseLines, hasIndividual: false,
+    baseRaw,
     baseTotal, baseLines,
     standardLines, standardTotal,
     optimaLines, optimaTotal,
@@ -397,17 +396,6 @@ function showStep(n) {
   btnNext.style.display = n === STEPS ? 'none' : 'inline-flex';
   btnNext.textContent = n === STEPS - 1 ? 'Посмотреть расчёт →' : 'Далее →';
 
-  // Товарный учёт — показываем только для wholesale/retail
-  if (n === 9) {
-    const invBlock = document.getElementById('inventory-block');
-    if (A.niches.includes('wholesale') || A.niches.includes('retail')) {
-      invBlock.style.display = 'block';
-      const pr = A.niches.includes('wholesale') ? P.niche.wh_inventory : P.niche.rt_inventory;
-      document.getElementById('inventory-label').innerHTML = `Товарный учёт <strong>+${fmt(pr)}</strong>`;
-    } else {
-      invBlock.style.display = 'none';
-    }
-  }
 
   if (n === STEPS) buildSummary();
   restoreStep(n);
@@ -462,7 +450,8 @@ function collectStep(n) {
     A.licenseCount = parseInt(document.getElementById('license-count').value)||1;
     A.spot        = document.getElementById('add-spot').checked;
     A.spotCount   = parseInt(document.getElementById('spot-count').value)||1;
-    A.inventory   = document.getElementById('add-inventory') ? document.getElementById('add-inventory').checked : false;
+    A.whInventory = document.getElementById('add-wh-inventory') ? document.getElementById('add-wh-inventory').checked : false;
+    A.rtInventory = document.getElementById('add-rt-inventory') ? document.getElementById('add-rt-inventory').checked : false;
   }
   if (n===10) {
     const s = document.querySelector('#g-priority .selected');
@@ -483,8 +472,10 @@ function collectStep(n) {
     collectMgmtItems();
   }
   if (n===11) {
-    A.name     = (document.getElementById('f-name').value||'').trim();
-    A.director = (document.getElementById('f-director').value||'').trim();
+    const nameEl = document.getElementById('f-name');
+    if (nameEl && nameEl.value.trim()) A.name = nameEl.value.trim();
+    const dirEl = document.getElementById('f-director');
+    if (dirEl) A.director = (dirEl.value||'').trim();
   }
 }
 
@@ -528,8 +519,14 @@ function restoreStep(n) {
     document.getElementById('add-spot').checked       = A.spot;
     document.getElementById('spot-count').value       = A.spotCount;
     document.getElementById('spot-count-row').style.display     = A.spot ? 'flex' : 'none';
-    const inv = document.getElementById('add-inventory');
-    if (inv) inv.checked = A.inventory;
+    const whBlock = document.getElementById('wh-inventory-block');
+    const rtBlock = document.getElementById('rt-inventory-block');
+    if (whBlock) whBlock.style.display = A.niches.includes('wholesale') ? 'block' : 'none';
+    if (rtBlock) rtBlock.style.display = A.niches.includes('retail')    ? 'block' : 'none';
+    const whInv = document.getElementById('add-wh-inventory');
+    if (whInv) whInv.checked = A.whInventory;
+    const rtInv = document.getElementById('add-rt-inventory');
+    if (rtInv) rtInv.checked = A.rtInventory;
   }
   if (n===10) {
     const restorePick10 = (val) => document.querySelectorAll('#g-priority .ccard').forEach(b => b.classList.toggle('selected', b.dataset.val === val));
@@ -566,6 +563,13 @@ function restoreStep(n) {
   if (n===11) {
     document.getElementById('f-name').value     = A.name;
     document.getElementById('f-director').value = A.director;
+  }
+  if (n===12) {
+    document.querySelectorAll('.ccard--sm').forEach(b => {
+      const m = (b.getAttribute('onclick')||'').match(/setDiscount\((\d+)/);
+      const pct = m ? parseInt(m[1]) : 0;
+      b.classList.toggle('selected', pct === Number(A.discount));
+    });
   }
 }
 
@@ -641,6 +645,11 @@ function cashNoneToggle() {
   updateTotal();
 }
 
+function cashOptionToggle() {
+  document.getElementById('cash-none').checked = false;
+  updateTotal();
+}
+
 function militaryToggle() {
   const checked = document.getElementById('add-military').checked;
   document.getElementById('military-count-row').style.display = checked ? 'flex' : 'none';
@@ -712,7 +721,7 @@ function buildSummary() {
       <span class="sum-line-name">${esc(l.name)}</span>
       <span class="sum-line-price">${fmt(l.price)}</span>
     </div>`
-  ).join('') + (disc > 0 ? `<div class="sum-modifier"><span>Скидка ${disc}%</span><span>−${disc}%</span></div>` : '');
+  ).join('') + (disc > 0 ? `<div class="sum-modifier"><span>Скидка ${disc}%</span><span>−${fmt(res.baseRaw - res.baseTotal)}</span></div>` : '');
   const baseTotalEl = document.getElementById('sum-total-base');
   if (baseTotalEl) baseTotalEl.textContent = fmt(res.baseTotal) + '/мес';
   document.getElementById('sum-total').textContent = fmt(res.baseTotal);
@@ -778,9 +787,11 @@ function generateKP() {
 
 function generateContract() {
   if (!lastKP) { showToast('Сначала сформируйте КП'); return; }
-  const cNum = nextNum('Д');
+  if (!lastContract) lastContract = {};
+  if (!lastContract.cNum) lastContract.cNum = nextNum('Д');
+  const cNum = lastContract.cNum;
   const cText = buildContractText(lastKP.total, lastKP.lines, cNum);
-  lastContract = { text:cText, cNum };
+  lastContract.text = cText;
 
   document.getElementById('contract-meta').textContent = `${cNum} · ${todayLong()}`;
   document.getElementById('contract-preview').textContent = cText;
@@ -833,7 +844,7 @@ function newQuiz() {
     cashKassa:false, cashAvans:false,
     ved:false, reconcile:false,
     military:false, militaryCount:1, licenses:false, licenseCount:1, spot:false, spotCount:1,
-    inventory:false, addPatent:false,
+    whInventory:false, rtInventory:false, addPatent:false,
     priorityManager:false,
     taxMgmt:false,
     officeBuh:false, officeBuhDays:5,
@@ -1225,8 +1236,8 @@ async function buildInvoiceDocx(ex, client, services, total, invNum) {
   const disc = Number(A.discount) || 0;
   const discAmount = disc > 0 ? Math.round(subtotal * disc / 100) : 0;
   const fullTotal = disc > 0 ? Math.round(subtotal * (1 - disc / 100)) : subtotal;
-  // Счёт выставляется на сумму предоплаты
-  const finalTotal = PREPAYMENT_AMOUNT;
+  // Счёт выставляется на сумму предоплаты: 50%, но не менее 20 000 ₽
+  const finalTotal = Math.max(Math.round(fullTotal * 0.5), PREPAYMENT_AMOUNT);
   const fmtN = function(n){ return new Intl.NumberFormat('ru-RU',{minimumFractionDigits:0,maximumFractionDigits:0}).format(n||0); };
   const fmtI = function(n){ return new Intl.NumberFormat('ru-RU').format(Math.round(n||0)); };
 
@@ -1293,6 +1304,11 @@ const serviceDescriptions = {
   'Освобождение от НДС (ст.145)': 'Обеспечивает учёт условий применения освобождения от НДС по ст. 145 НК РФ, мониторинг соответствия лимиту выручки и своевременное уведомление налоговых органов.',
   // Сотрудники
   'Сотрудники РФ (1–3 чел.)': 'Осуществляет расчёт заработной платы, отпускных, больничных и иных выплат сотрудникам (до 3 человек), начисление страховых взносов, формирование расчётных листков и платёжных ведомостей.',
+  'Сотрудники РФ': 'Осуществляет расчёт заработной платы, отпускных, больничных и иных выплат сотрудникам, начисление страховых взносов, формирование расчётных листков и платёжных ведомостей.',
+  'Иностранные сотрудники': 'Осуществляет расчёт заработной платы иностранных сотрудников с учётом особенностей налогообложения и обложения страховыми взносами нерезидентов, включая подготовку соответствующей отчётности.',
+  'СПОТ': 'Осуществляет оформление и учёт документов СПОТ (подтверждение поставки), включая проверку комплектности документов и их отражение в бухгалтерском учёте.',
+  'Товарный учёт (оптовая торговля)': 'Осуществляет учёт движения товарно-материальных ценностей в оптовой торговле: поступления, отгрузки, перемещения и инвентаризации товаров на складах Заказчика.',
+  'Товарный учёт (розничная торговля)': 'Осуществляет учёт движения товарно-материальных ценностей в розничной торговле: поступления, реализации, возвратов и инвентаризации товаров на складах Заказчика.',
   // Остальные
   'Касса (ККМ)': 'Осуществляет учёт кассовых операций, включая ведение кассовой книги, контроль кассовой дисциплины и учёт операций с применением контрольно-кассовой техники.',
   'Авансовые отчёты': 'Осуществляет проверку и учёт авансовых отчётов подотчётных лиц, включая контроль документального подтверждения расходов и отражение в учёте.',
@@ -1307,9 +1323,10 @@ const serviceDescriptions = {
 
 function getServiceDescription(name) {
   if (serviceDescriptions[name]) return serviceDescriptions[name];
-  // Частичное совпадение для динамических названий (сотрудники N чел., СПОТ N doc. и т.д.)
-  for (var key in serviceDescriptions) {
-    if (name.startsWith(key) || name.includes(key.split(' ')[0])) return serviceDescriptions[key];
+  // Ищем ключ-префикс: от длинных к коротким, чтобы "Сотрудники РФ (1–3 чел.)" не перекрыл "Сотрудники РФ"
+  const keys = Object.keys(serviceDescriptions).sort((a, b) => b.length - a.length);
+  for (const key of keys) {
+    if (name.startsWith(key)) return serviceDescriptions[key];
   }
   return 'Оказывает услугу «' + name + '» в соответствии с требованиями действующего законодательства РФ.';
 }
@@ -1358,9 +1375,9 @@ async function buildContractDocx(ex, client, services, total, conNum) {
     show_discount:      disc > 0,
     discount_percent:   disc > 0 ? String(disc) : '',
     original_amount:    disc > 0 ? _fmt(originalTotal) : '',
-    // Предоплата 50%
-    amount:       _fmt(20000),
-    amount_words: _rubles2words(20000).replace(/ \d{2} коп\.$/, ''),
+    // Предоплата 50%, но не менее 20 000 ₽
+    amount:       _fmt(Math.max(Math.round(total * 0.5), PREPAYMENT_AMOUNT)),
+    amount_words: _rubles2words(Math.max(Math.round(total * 0.5), PREPAYMENT_AMOUNT)).replace(/ \d{2} коп\.$/, ''),
     // Приложение №1 — перечень обязанностей
     contract_services: services.map(function(s, i) {
       return {
