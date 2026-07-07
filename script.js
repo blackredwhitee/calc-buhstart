@@ -276,14 +276,14 @@ function calcTotal() {
   // Стандарт-надбавки
   const priorityPrice = A.priorityManager ? Math.round(baseTotal * 0.2) : 0;
   const taxMgmtPrice  = A.taxMgmt  ? P.tax_mgmt : 0;
-  const officeBuhPrice = A.officeBuh ? (A.officeBuhDays || 5) * 7500 : 0;
+  const officeBuhPrice = A.officeBuh ? (A.officeBuhDays || 5) * 4 * 7500 : 0;
   const standardTotal = baseTotal + priorityPrice + taxMgmtPrice + officeBuhPrice;
 
   const standardLines = [
     { name:'Приоритетная скорость ответа менеджера', selected: A.priorityManager, price: priorityPrice,
       detail: A.priorityManager ? `+20% от базы` : '' },
     { name:'Налоговый менеджмент', selected: A.taxMgmt, price: taxMgmtPrice },
-    { name: A.officeBuh ? `Бухгалтер в офисе (${A.officeBuhDays} дн./нед.)` : 'Бухгалтер в офисе',
+    { name: A.officeBuh ? `Бухгалтер в офисе (${(A.officeBuhDays||5)*4} смен/мес.)` : 'Бухгалтер в офисе',
       selected: A.officeBuh, price: officeBuhPrice },
   ];
 
@@ -1100,7 +1100,7 @@ async function buildKPDocx(ex, client, kpData) {
   const checkPriority  = chk(A.priorityManager);
   const checkTaxMgmt   = chk(A.taxMgmt);
   const checkOfficeBuh = chk(A.officeBuh);
-  const officeDaysStr  = A.officeBuh ? ` — ${A.officeBuhDays || 5} рабочих дня/дней` : '';
+  const officeDaysStr  = A.officeBuh ? ` — ${(A.officeBuhDays||5)*4} смен/мес.` : '';
 
   // Оптима — управленческий учёт
   const mgmtItems = A.mgmtAccItems || [];

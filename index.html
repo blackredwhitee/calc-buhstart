@@ -384,18 +384,18 @@
       <div class="slide" data-step="14">
         <div class="slide-icon">🏢</div>
         <h2 class="slide-title">Бухгалтер в офисе</h2>
-        <p class="slide-sub">Входит в пакет Стандарт · 7 500 ₽ × кол-во дней</p>
+        <p class="slide-sub">Входит в пакет Стандарт · 7 500 ₽ за смену × 4 нед./мес.</p>
         <div class="grid-2" id="g-office-buh">
           <button class="ccard ccard--lg" data-val="yes" onclick="pickOfficeBuh(this)">
             <span class="cc-icon">✅</span><span class="cc-label">Да</span>
-            <span class="cc-sub">7 500 ₽ × дней/нед.</span>
+            <span class="cc-sub">7 500 ₽ × смен/мес.</span>
           </button>
           <button class="ccard ccard--lg" data-val="no" onclick="pickOfficeBuh(this)">
             <span class="cc-icon">➖</span><span class="cc-label">Нет</span>
           </button>
         </div>
         <div class="num-row" id="office-buh-days-row" style="display:none;margin-top:16px">
-          <label class="q-label">Количество рабочих дней в неделю</label>
+          <label class="q-label">Количество рабочих дней в неделю (макс. 5)</label>
           <input class="q-input num-input" type="number" id="office-buh-days" min="1" max="5" value="5" onchange="A.officeBuhDays=parseInt(this.value)||5; updateTotal()"/>
         </div>
       </div>
