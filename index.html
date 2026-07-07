@@ -469,13 +469,24 @@
             ⚠️ Часть услуг рассчитывается индивидуально — итог неполный
           </div>
           <div class="sum-div"></div>
-          <div id="sum-lines" class="sum-lines"></div>
-          <div class="sum-div"></div>
           <div id="sum-params" class="sum-params"></div>
+          <div class="sum-div"></div>
+          <div class="sum-tariff-block" id="sum-block-base">
+            <div class="sum-tariff-title">Базовая</div>
+            <div id="sum-lines" class="sum-lines"></div>
+            <div class="sum-tariff-total"><span>Итого базовая</span><span id="sum-total-base">—</span></div>
+          </div>
+          <div class="sum-tariff-block" id="sum-block-standard" style="display:none">
+            <div class="sum-tariff-title">Стандарт</div>
+            <div id="sum-standard" class="sum-lines"></div>
+            <div class="sum-tariff-total"><span>Итого Стандарт</span><span id="sum-total-standard">—</span></div>
+          </div>
+          <div class="sum-tariff-block" id="sum-block-optima" style="display:none">
+            <div class="sum-tariff-title">Оптима</div>
+            <div id="sum-optima" class="sum-lines"></div>
+            <div class="sum-tariff-total"><span>Итого Оптима</span><span id="sum-total-optima">—</span></div>
+          </div>
         </div>
-
-        <div id="sum-standard" style="display:none"></div>
-        <div id="sum-optima" style="display:none"></div>
         <!-- Выбор юрлица -->
         <div class="exec-pick">
           <p class="exec-pick-title">От какого юрлица формируем документы</p>

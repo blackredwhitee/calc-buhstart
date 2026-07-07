@@ -693,45 +693,7 @@ function showMgmtItems(show) {
 function buildSummary() {
   collectStep(11);
   const res = calcTotal();
-
-  // Базовый блок
   const disc = res.disc;
-  const linesEl = document.getElementById('sum-lines');
-  linesEl.innerHTML = res.baseLines.map(l =>
-    `<div class="sum-line">
-      <span class="sum-line-name">${esc(l.name)}</span>
-      <span class="sum-line-price">${fmt(l.price)}</span>
-    </div>`
-  ).join('') + (disc > 0 ? `<div class="sum-modifier"><span>Скидка ${disc}%</span><span>−${disc}%</span></div>` : '');
-
-  document.getElementById('sum-total').textContent = fmt(res.baseTotal);
-  const indNote = document.getElementById('sum-individual-note');
-  if (indNote) indNote.style.display = 'none';
-
-  // Стандарт блок
-  const stdEl = document.getElementById('sum-standard');
-  if (stdEl) {
-    const stdItems = res.standardLines.map(l =>
-      `<div class="sum-line sum-line--extra">
-        <span class="sum-line-check">${l.selected ? '✓' : '☐'}</span>
-        <span class="sum-line-name">${esc(l.name)}</span>
-        ${l.selected && l.price ? `<span class="sum-line-price">+${fmt(l.price)}</span>` : ''}
-      </div>`
-    ).join('');
-    stdEl.innerHTML = stdItems + `<div class="sum-line sum-line--total"><span>Итого Стандарт</span><span>${fmt(res.standardTotal)} ₽/мес</span></div>`;
-  }
-
-  // Оптима блок
-  const optEl = document.getElementById('sum-optima');
-  if (optEl) {
-    const optItems = res.optimaLines.map(l =>
-      `<div class="sum-line sum-line--extra">
-        <span class="sum-line-check">${l.selected ? '✓' : '☐'}</span>
-        <span class="sum-line-name">${esc(l.name)}</span>
-      </div>`
-    ).join('');
-    optEl.innerHTML = optItems + `<div class="sum-line sum-line--total"><span>Итого Оптима</span><span>от ${fmt(res.optimaTotal)} ₽/мес</span></div>`;
-  }
 
   const taxNames = { patent:'Патент', ausn_d:'АУСН Доходы', ausn_dr:'АУСН Доходы-Расходы', usn6:'УСН 6%', usn15:'УСН 15%', osno:'ОСНО' };
   document.getElementById('sum-params').innerHTML = `
@@ -739,6 +701,52 @@ function buildSummary() {
     <div class="sum-param"><span class="sum-param-k">Форма</span><span class="sum-param-v">${esc(A.entity)}</span></div>
     ${!A.isNull ? `<div class="sum-param"><span class="sum-param-k">Налогообложение</span><span class="sum-param-v">${esc(taxNames[A.tax]||A.tax)}</span></div>` : ''}
   `;
+
+  const indNote = document.getElementById('sum-individual-note');
+  if (indNote) indNote.style.display = 'none';
+
+  // Базовая
+  const linesEl = document.getElementById('sum-lines');
+  linesEl.innerHTML = res.baseLines.map(l =>
+    `<div class="sum-line">
+      <span class="sum-line-name">${esc(l.name)}</span>
+      <span class="sum-line-price">${fmt(l.price)}</span>
+    </div>`
+  ).join('') + (disc > 0 ? `<div class="sum-modifier"><span>Скидка ${disc}%</span><span>−${disc}%</span></div>` : '');
+  const baseTotalEl = document.getElementById('sum-total-base');
+  if (baseTotalEl) baseTotalEl.textContent = fmt(res.baseTotal) + '/мес';
+  document.getElementById('sum-total').textContent = fmt(res.baseTotal);
+
+  // Стандарт — только выбранные
+  const stdSelected = res.standardLines.filter(l => l.selected);
+  const stdBlock = document.getElementById('sum-block-standard');
+  const stdEl = document.getElementById('sum-standard');
+  if (stdBlock) stdBlock.style.display = stdSelected.length ? 'block' : 'none';
+  if (stdEl) {
+    stdEl.innerHTML = stdSelected.map(l =>
+      `<div class="sum-line">
+        <span class="sum-line-name">${esc(l.name)}</span>
+        ${l.price ? `<span class="sum-line-price">+${fmt(l.price)}</span>` : ''}
+      </div>`
+    ).join('');
+    const stdTotalEl = document.getElementById('sum-total-standard');
+    if (stdTotalEl) stdTotalEl.textContent = fmt(res.standardTotal) + '/мес';
+  }
+
+  // Оптима — только выбранные
+  const optSelected = res.optimaLines.filter(l => l.selected);
+  const optBlock = document.getElementById('sum-block-optima');
+  const optEl = document.getElementById('sum-optima');
+  if (optBlock) optBlock.style.display = optSelected.length ? 'block' : 'none';
+  if (optEl) {
+    optEl.innerHTML = optSelected.map(l =>
+      `<div class="sum-line">
+        <span class="sum-line-name">${esc(l.name)}</span>
+      </div>`
+    ).join('');
+    const optTotalEl = document.getElementById('sum-total-optima');
+    if (optTotalEl) optTotalEl.textContent = 'от ' + fmt(res.optimaTotal) + '/мес';
+  }
 }
 
 /* ─── Документы ──────────────────────────────── */
