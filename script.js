@@ -1117,59 +1117,376 @@ function _fmt(n) { return new Intl.NumberFormat('ru-RU').format(Math.round(n||0)
 
 /* ─── КП ────────────────────────────────────────── */
 async function buildKPDocx(ex, client, kpData) {
-  const { kpNum, baseTotal, baseLines, standardTotal, standardLines, optimaTotal, optimaLines } = kpData;
+  const {
+    Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+    AlignmentType, BorderStyle, WidthType, ShadingType, VerticalAlign, ImageRun,
+  } = window.docx;
+
+  const { kpNum, baseTotal, baseLines, standardTotal, optimaTotal, disc, baseRaw } = kpData;
+  const fmtN = n => new Intl.NumberFormat('ru-RU').format(Math.round(n || 0));
   const validDate = new Date();
   validDate.setDate(validDate.getDate() + (Number(A.kpValidDays) || 5));
-  const fmtN = n => new Intl.NumberFormat('ru-RU').format(Math.round(n || 0));
-  const chk  = selected => selected ? '✓' : '☐';
+  const validDateStr = validDate.toLocaleDateString('ru-RU', { day:'2-digit', month:'long', year:'numeric' });
+  const todayStr = new Date().toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric' });
 
-  // Базовые услуги — только выбранные, нумерация по порядку
-  const baseServices = (baseLines || []).map((l, i) => ({
-    idx:   String(i + 1),
-    name:  l.name || '',
-    check: '✓',
-  }));
-
-  // Стандарт — фиксированный список, галочки из A
-  const stdLines = standardLines || [];
-  const checkPriority  = chk(A.priorityManager);
-  const checkTaxMgmt   = chk(A.taxMgmt);
-  const checkOfficeBuh = chk(A.officeBuh);
-  const officeDaysStr  = A.officeBuh ? ` — ${(A.officeBuhDays||5)*4} смен/мес.` : '';
-
-  // Оптима — управленческий учёт
   const mgmtItems = A.mgmtAccItems || [];
-  const checkMgmtAcc    = chk(A.mgmtAcc);
-  const checkDDSODDS    = chk(A.mgmtAcc && mgmtItems.includes('ДДС и ОДДС'));
-  const checkPL         = chk(A.mgmtAcc && mgmtItems.includes('P&L'));
-  const checkBudget     = chk(A.mgmtAcc && mgmtItems.includes('Бюджетирование'));
-  const checkContractors = chk(A.mgmtAcc && mgmtItems.includes('Работа с контрагентами по задолженностям и сбор документов'));
+  const FONT = 'Arial';
+  const ORANGE = 'E35611';
+  const TOTAL_BG = 'FFF3EE';
+  const TEXT = '222120';
+  const GRAY = 'AAAAAA';
+  const BORDER = 'E0E0E0';
+  const WHITE = 'FFFFFF';
+  const STRIPE = 'FAFAFA';
 
-  const data = {
-    kpNum:         String(kpNum),
-    clientName:    client.name || '',
-    director:      client.director || '',
-    // Базовый блок
-    baseServices,
-    baseTotal:     fmtN(baseTotal),
-    // Стандарт
-    checkPriority,
-    checkTaxMgmt,
-    checkOfficeBuh,
-    officeDaysStr,
-    standardTotal: fmtN(standardTotal),
-    // Оптима
-    checkMgmtAcc,
-    checkDDSODDS,
-    checkPL,
-    checkBudget,
-    checkContractors,
-    optimaTotal:   fmtN(optimaTotal),
-    // Прочее
-    validDate: validDate.toLocaleDateString('ru-RU', {day:'2-digit', month:'long', year:'numeric'}),
+  // A4 margins 1134 → content 9638; table cols: 4819 + 3×1606
+  const CONTENT = 9638;
+  const COL1 = 4819;
+  const COL_T = 1606;
+
+  const bord = (c = BORDER) => {
+    const s = { style: BorderStyle.SINGLE, size: 4, color: c };
+    return { top: s, bottom: s, left: s, right: s };
+  };
+  const noBord = () => {
+    const s = { style: BorderStyle.NONE, size: 0, color: WHITE };
+    return { top: s, bottom: s, left: s, right: s };
   };
 
-  return _fillDocxTemplate('KP_template_v4.docx', data);
+  const t = (text, opts = {}) => new TextRun({
+    text, font: FONT,
+    bold:    opts.bold    !== undefined ? opts.bold : false,
+    size:    opts.size    || 20,
+    color:   opts.color   || TEXT,
+    italics: opts.italic  || false,
+  });
+
+  const p = (runs, align = AlignmentType.LEFT, spacing = { before: 0, after: 0 }) =>
+    new Paragraph({ alignment: align, spacing, children: Array.isArray(runs) ? runs : [runs] });
+
+  // Ячейка таблицы
+  const cell = (para, w, bg, borders) => new TableCell({
+    width: { size: w, type: WidthType.DXA },
+    shading: bg ? { fill: bg, type: ShadingType.CLEAR } : undefined,
+    borders: borders || bord(),
+    margins: { top: 60, bottom: 60, left: 120, right: 60 },
+    verticalAlign: VerticalAlign.CENTER,
+    children: [para],
+  });
+
+  // Ячейка с галочкой/тире
+  const chk = (yes, w = COL_T, bg) => new TableCell({
+    width: { size: w, type: WidthType.DXA },
+    shading: bg ? { fill: bg, type: ShadingType.CLEAR } : undefined,
+    borders: bord(),
+    margins: { top: 60, bottom: 60, left: 40, right: 40 },
+    verticalAlign: VerticalAlign.CENTER,
+    children: [p(t(yes ? '✓' : '—', { bold: yes, size: 22, color: yes ? '217346' : 'CCCCCC' }), AlignmentType.CENTER)],
+  });
+
+  // Строка таблицы с галочками
+  const svcRow = (name, base, std, opt, stripe = false) => {
+    const bg = stripe ? STRIPE : WHITE;
+    return new TableRow({ children: [
+      cell(p(t(name, { size: 19 })), COL1, bg),
+      chk(base, COL_T, bg),
+      chk(std,  COL_T, bg),
+      chk(opt,  COL_T, bg),
+    ]});
+  };
+
+  // Заголовок таблицы (оранжевый)
+  const headRow = () => new TableRow({
+    tableHeader: true,
+    children: ['Наименование услуги', 'Базовая', 'Стандарт', 'Оптима'].map((label, i) =>
+      new TableCell({
+        width: { size: i === 0 ? COL1 : COL_T, type: WidthType.DXA },
+        shading: { fill: ORANGE, type: ShadingType.CLEAR },
+        borders: bord(ORANGE),
+        margins: { top: 80, bottom: 80, left: i === 0 ? 120 : 40, right: 60 },
+        verticalAlign: VerticalAlign.CENTER,
+        children: [p(t(label, { bold: true, size: 20, color: WHITE }), i === 0 ? AlignmentType.LEFT : AlignmentType.CENTER)],
+      })
+    ),
+  });
+
+  // Разделитель перед итогами
+  const sepRow = () => new TableRow({
+    children: [new TableCell({
+      columnSpan: 4,
+      width: { size: CONTENT, type: WidthType.DXA },
+      shading: { fill: 'F5F5F5', type: ShadingType.CLEAR },
+      borders: bord('E0E0E0'),
+      margins: { top: 4, bottom: 4, left: 0, right: 0 },
+      children: [p(t(''))],
+    })],
+  });
+
+  // Строка с названиями тарифов (перед итогами)
+  const tariffLabelRow = () => new TableRow({
+    children: [
+      cell(p(t('')), COL1, WHITE, noBord()),
+      ...[['Базовая', COL_T], ['Стандарт', COL_T], ['Оптима', COL_T]].map(([label, w]) =>
+        new TableCell({
+          width: { size: w, type: WidthType.DXA },
+          borders: noBord(),
+          margins: { top: 40, bottom: 40, left: 40, right: 40 },
+          children: [p(t(label, { bold: true, size: 18, color: ORANGE }), AlignmentType.CENTER)],
+        })
+      ),
+    ],
+  });
+
+  // Строки итогов
+  const totalCell = (text, w, isFirst = false, topLine = false) => {
+    const b = topLine ? bord('D0A000') : {
+      top: { style: BorderStyle.NONE, size: 0, color: WHITE },
+      bottom: { style: BorderStyle.SINGLE, size: 2, color: 'E8D080' },
+      left:   { style: BorderStyle.SINGLE, size: 2, color: 'E8D080' },
+      right:  { style: BorderStyle.SINGLE, size: 2, color: 'E8D080' },
+    };
+    return new TableCell({
+      width: { size: w, type: WidthType.DXA },
+      shading: { fill: TOTAL_BG, type: ShadingType.CLEAR },
+      borders: b,
+      margins: { top: 80, bottom: 80, left: isFirst ? 120 : 40, right: 60 },
+      verticalAlign: VerticalAlign.CENTER,
+      children: [p(t(text, { bold: true, size: 19, color: TEXT }), isFirst ? AlignmentType.LEFT : AlignmentType.CENTER)],
+    });
+  };
+
+  const totalRow = (label, b, s, o, topLine = false) => new TableRow({ children: [
+    totalCell(label, COL1, true, topLine),
+    totalCell(b, COL_T, false, topLine),
+    totalCell(s, COL_T, false, topLine),
+    totalCell(o, COL_T, false, topLine),
+  ]});
+
+  // Блок итогов
+  const discNum = Number(disc) || 0;
+  const discAmt = Math.round((baseRaw || baseTotal) - baseTotal);
+  const stdRaw  = standardTotal + discAmt;
+  const optRaw  = optimaTotal  + discAmt;
+
+  const totalRows = discNum > 0 ? [
+    totalRow('Итого',                `${fmtN(baseRaw || baseTotal)} ₽/мес.`, `${fmtN(stdRaw)} ₽/мес.`,       `от ${fmtN(optRaw)} ₽/мес.`,       true),
+    totalRow(`Скидка ${discNum}%`,   `−${fmtN(discAmt)} ₽`,                 `−${fmtN(discAmt)} ₽`,           `−${fmtN(discAmt)} ₽`,             false),
+    totalRow('Стоимость со скидкой', `${fmtN(baseTotal)} ₽/мес.`,           `${fmtN(standardTotal)} ₽/мес.`, `от ${fmtN(optimaTotal)} ₽/мес.`, false),
+  ] : [
+    totalRow('Итого', `${fmtN(baseTotal)} ₽/мес.`, `${fmtN(standardTotal)} ₽/мес.`, `от ${fmtN(optimaTotal)} ₽/мес.`, true),
+  ];
+
+  // Загрузка логотипа (квадратный 512×512 → показываем 72×72)
+  let logoBuf = null;
+  try {
+    const resp = await fetch('logo.png');
+    if (resp.ok) logoBuf = await resp.arrayBuffer();
+  } catch (_) {}
+
+  // Шапка-таблица: лого слева + реквизиты справа (как в референсе)
+  const noBordStyle = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' };
+  const noBordAll = { top: noBordStyle, bottom: noBordStyle, left: noBordStyle, right: noBordStyle };
+
+  const headerTable = new Table({
+    width: { size: CONTENT, type: WidthType.DXA },
+    columnWidths: [2268, 7370],
+    borders: { top: noBordStyle, bottom: noBordStyle, left: noBordStyle, right: noBordStyle, insideH: noBordStyle, insideV: noBordStyle },
+    rows: [new TableRow({ children: [
+      // Ячейка с логотипом
+      new TableCell({
+        width: { size: 2268, type: WidthType.DXA },
+        borders: noBordAll,
+        verticalAlign: VerticalAlign.CENTER,
+        margins: { top: 0, bottom: 0, left: 0, right: 120 },
+        children: [new Paragraph({
+          spacing: { before: 0, after: 0 },
+          children: logoBuf ? [new ImageRun({
+            type: 'png', data: logoBuf,
+            transformation: { width: 132, height: 42 },
+            altText: { title: 'Логотип', description: 'Логотип', name: 'Логотип' },
+          })] : [],
+        })],
+      }),
+      // Ячейка с реквизитами (правое выравнивание)
+      new TableCell({
+        width: { size: 7370, type: WidthType.DXA },
+        borders: noBordAll,
+        verticalAlign: VerticalAlign.CENTER,
+        margins: { top: 0, bottom: 0, left: 120, right: 0 },
+        children: [new Paragraph({
+          alignment: AlignmentType.RIGHT,
+          spacing: { before: 0, after: 0 },
+          children: [
+            t(ex.name || '', { bold: true, size: 24 }),
+            ...(ex.address ? [t(ex.address, { size: 18, color: '444444' })] : []).flatMap(r => [new TextRun({ text: '', break: 1 }), r]),
+            ...(ex.phone   ? [t(ex.phone,   { size: 18, color: '444444' })] : []).flatMap(r => [new TextRun({ text: '', break: 1, font: FONT }), r]),
+            ...(ex.email   ? [t(ex.email,   { size: 18, color: '444444' })] : []).flatMap(r => [new TextRun({ text: '', break: 1, font: FONT }), r]),
+            new TextRun({ text: 'buhstart.ru', font: FONT, size: 18, color: '444444', break: 1 }),
+          ],
+        })],
+      }),
+    ]})],
+  });
+
+  // Список строк услуг для таблицы
+  const svcRows = [
+    // Базовые (динамические) — ✓ во всех трёх тарифах
+    ...(baseLines || []).map((l, i) => svcRow(l.name, true, true, true, i % 2 === 1)),
+    // Стандарт-опции: ✓ в Стандарт и Оптима если выбраны
+    ...(A.priorityManager ? [svcRow('Приоритетная скорость ответа менеджера', false, true, true)] : []),
+    ...(A.taxMgmt         ? [svcRow('Налоговый менеджмент',                  false, true, true)] : []),
+    ...(A.officeBuh       ? [svcRow(`Бухгалтер в офисе (${(A.officeBuhDays||5)*4} смен/мес.)`, false, true, true)] : []),
+    // Оптима: управленческий учёт и подпункты
+    ...(A.mgmtAcc ? [svcRow('Управленческий учёт', false, false, true)] : []),
+    ...(A.mgmtAcc && mgmtItems.includes('ДДС и ОДДС')                          ? [svcRow('ДДС и ОДДС', false, false, true)] : []),
+    ...(A.mgmtAcc && mgmtItems.includes('P&L')                                 ? [svcRow('P&L',        false, false, true)] : []),
+    ...(A.mgmtAcc && mgmtItems.includes('Бюджетирование')                      ? [svcRow('Бюджетирование', false, false, true)] : []),
+    ...(A.mgmtAcc && mgmtItems.includes('Работа с контрагентами по задолженностям и сбор документов')
+      ? [svcRow('Работа с контрагентами (по задолженностям и сбор документов)', false, false, true)] : []),
+  ];
+
+  // Параграф-разделитель
+  const gap = (sz = 100) => new Paragraph({ spacing: { before: 0, after: sz }, children: [] });
+
+  const doc = new Document({
+    sections: [{
+      properties: {
+        page: {
+          size: { width: 11906, height: 16838 },
+          margin: { top: 1134, bottom: 1134, left: 1134, right: 1134 },
+        },
+      },
+      children: [
+        // Шапка: лого + реквизиты
+        headerTable,
+
+        // Оранжевая линия-разделитель
+        new Paragraph({
+          spacing: { before: 140, after: 140 },
+          border: { bottom: { style: BorderStyle.SINGLE, size: 18, color: 'E57413', space: 1 } },
+          children: [],
+        }),
+
+        // Заголовок КП — по центру
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 0, after: 20 },
+          children: [t(`Коммерческое предложение №${kpNum}`, { bold: true, size: 32 })],
+        }),
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 0, after: 80 },
+          children: [t(`от ${todayStr}`, { size: 20, color: GRAY })],
+        }),
+        new Paragraph({
+          spacing: { before: 0, after: 20 },
+          children: [t(`Кому: ${client.name || ''}`, { bold: false, size: 21 })],
+        }),
+        new Paragraph({
+          spacing: { before: 0, after: 120 },
+          children: [t(`Руководителю: ${client.director || ''}`, { bold: false, size: 21 })],
+        }),
+
+        // Вводный текст
+        new Paragraph({
+          spacing: { before: 0, after: 80 },
+          children: [t(
+            'В продолжение нашего разговора высылаем коммерческое предложение на бухгалтерское обслуживание вашей организации. ' +
+            'Ниже представлены три варианта сотрудничества — от базового пакета до полного сопровождения с управленческим учётом.',
+            { size: 21 }
+          )],
+        }),
+        new Paragraph({
+          spacing: { before: 0, after: 200 },
+          children: [t(
+            `${ex.name || 'Компания'} успешно работает с 2003 года и за более чем 20 лет показала высокий уровень профессионализма ` +
+            'в налоговом и бухгалтерском сопровождении. В штате компании трудятся 17 бухгалтеров и аудиторов, юристы и программисты, ' +
+            'а также 39 удалённых экономистов, что позволяет выполнять проекты любой сложности. ' +
+            'Мы несём полную материальную ответственность за оказываемые услуги, что закреплено в договоре.',
+            { size: 21 }
+          )],
+        }),
+
+        // Таблица сравнения
+        new Table({
+          width: { size: CONTENT, type: WidthType.DXA },
+          columnWidths: [COL1, COL_T, COL_T, COL_T],
+          rows: [
+            headRow(),
+            ...svcRows,
+            sepRow(),
+            tariffLabelRow(),
+            ...totalRows,
+          ],
+        }),
+
+        gap(80),
+
+        // Сноска и срок действия
+        new Paragraph({
+          spacing: { before: 0, after: 60 },
+          children: [t(
+            '* Окончательная стоимость услуг определяется после двух месяцев обслуживания, исходя из фактического объёма операций.',
+            { size: 18, italic: true, color: '555555' }
+          )],
+        }),
+        new Paragraph({
+          spacing: { before: 0, after: 200 },
+          children: [t(`Предложение действует до ${validDateStr}`, { bold: true, size: 22 })],
+        }),
+
+        // О компании
+        new Paragraph({
+          spacing: { before: 0, after: 60 },
+          children: [t('О компании', { bold: true, size: 28 })],
+        }),
+        new Paragraph({
+          spacing: { before: 0, after: 180 },
+          children: [t(
+            `${ex.name || 'Компания'} успешно работает с 2003 года и за более чем 20 лет показала высокий уровень профессионализма ` +
+            'в налоговом и бухгалтерском сопровождении. В штате компании трудятся 17 бухгалтеров и аудиторов, юристы и программисты, ' +
+            'а также 39 удалённых экономистов, что позволяет выполнять проекты любой сложности. ' +
+            'Мы несём полную материальную ответственность за оказываемые услуги, что закреплено в договоре.',
+            { size: 20 }
+          )],
+        }),
+
+        // Условия сотрудничества
+        new Paragraph({
+          spacing: { before: 0, after: 60 },
+          children: [t('Условия сотрудничества', { bold: true, size: 28 })],
+        }),
+        new Paragraph({
+          spacing: { before: 0, after: 60 },
+          children: [t(
+            'При заключении договора вносится предоплата в размере 50% от стоимости (не менее 20 000 рублей). ' +
+            'Первые два месяца обслуживания стоимость рассчитывается по факту выполненных работ. ' +
+            'По прошествии двух месяцев стороны согласуют фиксированную ежемесячную стоимость.',
+            { size: 20 }
+          )],
+        }),
+        new Paragraph({
+          spacing: { before: 0, after: 200 },
+          children: [t('Подробнее на сайте: buhstart.ru', { size: 20 })],
+        }),
+
+        // Подпись
+        new Paragraph({
+          spacing: { before: 0, after: 20 },
+          children: [
+            t('Руководитель  ___________ ', { size: 22 }),
+            t(ex.director || ex.name || '', { size: 22 }),
+          ],
+        }),
+        new Paragraph({
+          spacing: { before: 0, after: 0 },
+          children: [t(ex.name || '', { bold: true, size: 22 })],
+        }),
+      ],
+    }],
+  });
+
+  return Packer.toBlob(doc);
 }
 
 /* ─── Хелпер docxtemplater ───────────────────────── */
