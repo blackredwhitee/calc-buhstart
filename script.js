@@ -339,22 +339,27 @@ function goBack() {
 }
 
 function nextStepNum(n) {
+  const taxMgmt = ['ausn_dr','usn15','osno'].includes(A.tax);
   if (n === 2 && A.isNull) return 11;
+  if (n === 3) return taxMgmt ? 13 : 4;  // сразу после налогообложения
+  if (n === 13) return 4;                 // → обратно в основной поток
   if (n === 4 && !A.niches.includes('marketplace')) return 6;
-  if (n === 9)  return 10; // → Приоритетная скорость
-  if (n === 10) return (['ausn_dr','usn15','osno'].includes(A.tax)) ? 13 : 14;
-  if (n === 13) return 14; // → Бухгалтер
-  if (n === 14) return 15; // → Управленческий учёт
+  if (n === 9)  return 10;
+  if (n === 10) return 14;
+  if (n === 14) return 15;
   if (n === 15) return A.mgmtAcc ? 16 : 11;
   if (n === 16) return 11;
   return n + 1;
 }
 
 function prevStepNum(n) {
+  const taxMgmt = ['ausn_dr','usn15','osno'].includes(A.tax);
+  if (n === 4  && taxMgmt) return 13;
+  if (n === 4  && !A.niches.includes('marketplace')) return taxMgmt ? 13 : 3;
   if (n === 6  && !A.niches.includes('marketplace')) return 4;
+  if (n === 13) return 3;
   if (n === 10) return 9;
-  if (n === 13) return 10;
-  if (n === 14) return (['ausn_dr','usn15','osno'].includes(A.tax)) ? 13 : 10;
+  if (n === 14) return 10;
   if (n === 15) return 14;
   if (n === 16) return 15;
   if (n === 11 && A.isNull)   return 2;
@@ -365,11 +370,12 @@ function prevStepNum(n) {
 
 function computeStepPath() {
   if (A.isNull) return [1,2,11,12];
-  const path = [1,2,3,4];
+  const taxMgmt = ['ausn_dr','usn15','osno'].includes(A.tax);
+  const path = [1,2,3];
+  if (taxMgmt) path.push(13);
+  path.push(4);
   if (A.niches.includes('marketplace')) path.push(5);
-  path.push(6,7,8,9,10);
-  if (['ausn_dr','usn15','osno'].includes(A.tax)) path.push(13);
-  path.push(14,15);
+  path.push(6,7,8,9,10,14,15);
   if (A.mgmtAcc) path.push(16);
   path.push(11,12);
   return path;
