@@ -406,38 +406,34 @@
         <h2 class="slide-title">Управленческий учёт</h2>
         <p class="slide-sub">Входит в пакет Оптима · от 50 000 ₽</p>
         <div class="grid-2" id="g-mgmt-acc">
-          <button class="ccard ccard--lg" data-val="yes" onclick="pick(this,'g-mgmt-acc')">
+          <button class="ccard ccard--lg" data-val="yes" onclick="pick(this,'g-mgmt-acc');showMgmtItems(true)">
             <span class="cc-icon">✅</span><span class="cc-label">Да</span>
             <span class="cc-sub">от 50 000 ₽</span>
           </button>
-          <button class="ccard ccard--lg" data-val="no" onclick="pick(this,'g-mgmt-acc')">
+          <button class="ccard ccard--lg" data-val="no" onclick="pick(this,'g-mgmt-acc');showMgmtItems(false)">
             <span class="cc-icon">➖</span><span class="cc-label">Нет</span>
           </button>
         </div>
-      </div>
-
-      <!-- ШАГ 16: Состав управленческого учёта -->
-      <div class="slide" data-step="16">
-        <div class="slide-icon">📋</div>
-        <h2 class="slide-title">Состав управленческого учёта</h2>
-        <p class="slide-sub">Отметьте необходимые отчёты</p>
-        <div class="checks-list">
-          <label class="chk-label">
-            <input type="checkbox" id="mgmt-dds-odds" onchange="collectMgmtItems()"/>
-            <span>ДДС и ОДДС</span>
-          </label>
-          <label class="chk-label">
-            <input type="checkbox" id="mgmt-pl" onchange="collectMgmtItems()"/>
-            <span>P&amp;L — отчёт о прибылях и убытках</span>
-          </label>
-          <label class="chk-label">
-            <input type="checkbox" id="mgmt-budget" onchange="collectMgmtItems()"/>
-            <span>Бюджетирование</span>
-          </label>
-          <label class="chk-label">
-            <input type="checkbox" id="mgmt-contractors" onchange="collectMgmtItems()"/>
-            <span>Работа с контрагентами по задолженностям и сбор документов</span>
-          </label>
+        <div id="mgmt-items-block" style="display:none; margin-top:20px;">
+          <p class="slide-sub" style="margin-bottom:10px;">Отметьте необходимые отчёты</p>
+          <div class="checks-list">
+            <label class="chk-label">
+              <input type="checkbox" id="mgmt-dds-odds" onchange="collectMgmtItems();updateTotal()"/>
+              <span>ДДС и ОДДС</span>
+            </label>
+            <label class="chk-label">
+              <input type="checkbox" id="mgmt-pl" onchange="collectMgmtItems();updateTotal()"/>
+              <span>P&amp;L — отчёт о прибылях и убытках</span>
+            </label>
+            <label class="chk-label">
+              <input type="checkbox" id="mgmt-budget" onchange="collectMgmtItems();updateTotal()"/>
+              <span>Бюджетирование</span>
+            </label>
+            <label class="chk-label">
+              <input type="checkbox" id="mgmt-contractors" onchange="collectMgmtItems();updateTotal()"/>
+              <span>Работа с контрагентами по задолженностям и сбор документов</span>
+            </label>
+          </div>
         </div>
       </div>
 

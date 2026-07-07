@@ -347,8 +347,7 @@ function nextStepNum(n) {
   if (n === 9)  return 10;
   if (n === 10) return 14;
   if (n === 14) return 15;
-  if (n === 15) return A.mgmtAcc ? 16 : 11;
-  if (n === 16) return 11;
+  if (n === 15) return 11;
   return n + 1;
 }
 
@@ -361,9 +360,7 @@ function prevStepNum(n) {
   if (n === 10) return 9;
   if (n === 14) return 10;
   if (n === 15) return 14;
-  if (n === 16) return 15;
   if (n === 11 && A.isNull)   return 2;
-  if (n === 11 && A.mgmtAcc)  return 16;
   if (n === 11)                return 15;
   return n - 1;
 }
@@ -376,7 +373,6 @@ function computeStepPath() {
   path.push(4);
   if (A.niches.includes('marketplace')) path.push(5);
   path.push(6,7,8,9,10,14,15);
-  if (A.mgmtAcc) path.push(16);
   path.push(11,12);
   return path;
 }
@@ -484,8 +480,8 @@ function collectStep(n) {
   if (n===15) {
     const s = document.querySelector('#g-mgmt-acc .selected');
     if (s) A.mgmtAcc = s.dataset.val === 'yes';
+    collectMgmtItems();
   }
-  if (n===16) { collectMgmtItems(); }
   if (n===11) {
     A.name     = (document.getElementById('f-name').value||'').trim();
     A.director = (document.getElementById('f-director').value||'').trim();
@@ -552,8 +548,7 @@ function restoreStep(n) {
   if (n===15) {
     const restorePick15 = (val) => document.querySelectorAll('#g-mgmt-acc .ccard').forEach(b => b.classList.toggle('selected', b.dataset.val === val));
     restorePick15(A.mgmtAcc ? 'yes' : 'no');
-  }
-  if (n===16) {
+    showMgmtItems(A.mgmtAcc);
     const map = { 'mgmt-dds-odds':'ДДС и ОДДС', 'mgmt-pl':'P&L', 'mgmt-budget':'Бюджетирование', 'mgmt-contractors':'Работа с контрагентами по задолженностям и сбор документов' };
     Object.entries(map).forEach(([id, val]) => {
       const el = document.getElementById(id);
@@ -687,7 +682,11 @@ function collectMgmtItems() {
     const el = document.getElementById(MGMT_CHECKBOX_IDS[i]);
     return el && el.checked;
   });
-  updateTotal();
+}
+
+function showMgmtItems(show) {
+  const block = document.getElementById('mgmt-items-block');
+  if (block) block.style.display = show ? 'block' : 'none';
 }
 
 /* ─── Сводка (шаг 12) ────────────────────────── */
