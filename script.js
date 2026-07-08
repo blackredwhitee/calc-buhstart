@@ -780,8 +780,13 @@ function generateKP() {
   };
   const bdSep = () => '<div class="kp-breakdown-sep"></div>';
   const bdSec = label => `<div class="kp-breakdown-section">${label}</div>`;
+  const discNum = Number(disc) || 0;
+  const discAmt = discNum > 0 ? baseRaw - baseTotal : 0;
   let bdHtml = bdSec('Базовая');
   (baseLines || []).forEach(l => { bdHtml += bdLine(l.name, l.price); });
+  if (discNum > 0) {
+    bdHtml += '<div class="kp-breakdown-line" style="color:var(--accent)"><span class="bl-name">Скидка ' + discNum + '%</span><span class="bl-price" style="color:var(--accent)">−' + n(discAmt) + '</span></div>';
+  }
   const hasStd = A.priorityManager || (A.taxMgmt && ['ausn_dr','usn15','osno'].includes(A.tax)) || A.officeBuh;
   if (hasStd) {
     bdHtml += bdSep() + bdSec('Доп. услуги Стандарт');
