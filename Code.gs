@@ -35,7 +35,7 @@ function saveApplication(data) {
     sheet = ss.insertSheet('Заявки');
     const headers = [
       'Дата', 'Клиент', 'Форма', 'Налог', 'Услуги',
-      'Итог ₽', 'Скидка %', '№ КП', '№ Счёта', '№ Договора',
+      'Базовая ₽', 'Стандарт ₽', 'Оптима ₽', 'Скидка %', '№ КП', '№ Счёта', '№ Договора',
       'Папка', 'Статус'
     ];
     sheet.appendRow(headers);
@@ -44,7 +44,7 @@ function saveApplication(data) {
          .setFontWeight('bold')
          .setBackground('#E35611')
          .setFontColor('#ffffff');
-    sheet.setColumnWidths(1, headers.length, 140);
+    sheet.setColumnWidths(1, headers.length, 130);
   }
 
   // 2. Папка клиента на Drive ────────────────────────
@@ -63,12 +63,14 @@ function saveApplication(data) {
     data.clientName,
     data.entity,
     data.tax        || '',
-    data.services   || '',
-    data.total      || 0,
-    data.discount   || 0,
-    data.kpNum      || '',
-    data.invoiceNum || '',
-    data.contractNum || '',
+    data.services     || '',
+    data.total        || 0,
+    data.totalStd     || 0,
+    data.totalOpt     || 0,
+    data.discount     || 0,
+    data.kpNum        || '',
+    data.invoiceNum   || '',
+    data.contractNum  || '',
     clientFolder.getUrl(),
     'Оформлена',
   ]);
@@ -76,7 +78,7 @@ function saveApplication(data) {
   // Подсветить строку если нет счёта или договора
   if (!data.invoiceNum && !data.contractNum) {
     const lastRow = sheet.getLastRow();
-    sheet.getRange(lastRow, 1, 1, 12).setBackground('#FFF3E0');
+    sheet.getRange(lastRow, 1, 1, 14).setBackground('#FFF3E0');
   }
 
   return clientFolder.getUrl();
