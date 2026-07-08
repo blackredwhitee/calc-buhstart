@@ -521,10 +521,19 @@
       <div class="doc-acts">
         <button class="btn btn-primary" onclick="downloadKP()">⬇ Скачать КП</button>
         <button class="btn btn-ghost" onclick="downloadInvoice()">⬇ Скачать счёт</button>
-        <button class="btn btn-ghost" onclick="copyEl('kp-preview')">Скопировать</button>
       </div>
     </div>
-    <div class="doc-preview" id="kp-preview"></div>
+    <div class="kp-summary" id="kp-preview">
+      <div class="kp-summary-tariffs">
+        <div class="kp-tariff"><div class="kp-tariff-name">Базовая</div><div class="kp-tariff-price" id="kp-price-base">—</div><div class="kp-tariff-sub">₽/мес.</div></div>
+        <div class="kp-tariff"><div class="kp-tariff-name">Стандарт</div><div class="kp-tariff-price" id="kp-price-std">—</div><div class="kp-tariff-sub">₽/мес.</div></div>
+        <div class="kp-tariff"><div class="kp-tariff-name">Оптима</div><div class="kp-tariff-price" id="kp-price-opt">—</div><div class="kp-tariff-sub">₽/мес.</div></div>
+      </div>
+      <div class="kp-summary-meta">
+        <div class="kp-summary-meta-row"><span class="kp-summary-meta-label">Клиент</span><span id="kp-summary-client">—</span></div>
+        <div class="kp-summary-meta-row"><span class="kp-summary-meta-label">КП действует до</span><span id="kp-summary-valid">—</span></div>
+      </div>
+    </div>
     <div class="doc-next">
       <div class="post-kp-actions">
         <button class="btn btn-accent btn-xl" onclick="openReqModal('contract')">Сформировать договор →</button>
@@ -542,10 +551,13 @@
       <div><h2 class="doc-title">Договор оказания услуг</h2><p class="doc-sub" id="contract-meta"></p></div>
       <div class="doc-acts">
         <button class="btn btn-primary" onclick="downloadContract()">⬇ Скачать договор</button>
-        <button class="btn btn-ghost" onclick="copyEl('contract-preview')">Скопировать</button>
       </div>
     </div>
-    <div class="doc-preview" id="contract-preview"></div>
+    <div class="contract-summary" id="contract-preview">
+      <div class="contract-summary-row"><span class="contract-summary-label">Клиент</span><span id="contract-client">—</span></div>
+      <div class="contract-summary-row"><span class="contract-summary-label">Номер</span><span id="contract-num">—</span></div>
+      <div class="contract-summary-row"><span class="contract-summary-label">Оплата</span><span>50% предоплата до начала работы, 50% по завершении периода</span></div>
+    </div>
     <div class="doc-next">
       <div class="post-kp-actions">
         <button class="btn btn-accent btn-xl" onclick="openReqModal('invoice')">Выставить счёт →</button>
