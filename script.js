@@ -127,7 +127,7 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw1Vzwi4U1e46Eg
 
 // ─── Глобальные переменные стоимостей (менять только здесь) ──────────────
 const PREPAYMENT_AMOUNT = 20000;   // Счёт выставляется на эту сумму
-const OPTIMA_BASE_PRICE = 50000;   // Минимальная стоимость управленческого учёта
+const OPTIMA_BASE_PRICE = 60000;
 
 
 // Текущее юрлицо — по умолчанию первое
@@ -743,7 +743,7 @@ function buildSummary() {
       </div>`
     ).join('');
     const optTotalEl = document.getElementById('sum-total-optima');
-    if (optTotalEl) optTotalEl.textContent = 'от ' + fmt(res.optimaTotal) + '/мес';
+    if (optTotalEl) optTotalEl.textContent = fmt(res.optimaTotal) + '/мес';
   }
 }
 
@@ -768,7 +768,7 @@ function generateKP() {
   const taxNames2 = { patent:'Патент', ausn_d:'АУСН Доходы', ausn_dr:'АУСН Доходы-Расходы', usn6:'УСН 6%', usn15:'УСН 15%', osno:'ОСНО' };
   document.getElementById('kp-price-base').textContent = new Intl.NumberFormat('ru-RU').format(baseTotal);
   document.getElementById('kp-price-std').textContent = new Intl.NumberFormat('ru-RU').format(standardTotal);
-  document.getElementById('kp-price-opt').textContent = 'от ' + new Intl.NumberFormat('ru-RU').format(optimaTotal);
+  document.getElementById('kp-price-opt').textContent = new Intl.NumberFormat('ru-RU').format(optimaTotal);
   document.getElementById('kp-summary-client').textContent = A.name + (A.entity ? ' · ' + A.entity : '') + (!A.isNull && A.tax ? ' · ' + (taxNames2[A.tax] || A.tax) : '');
   document.getElementById('kp-summary-valid').textContent = kpValidStr();
   const sec = document.getElementById('kp-sec');
@@ -1247,11 +1247,11 @@ async function buildKPDocx(ex, client, kpData) {
   const optRaw  = optimaTotal  + discAmt;
 
   const totalRows = discNum > 0 ? [
-    totalRow('Стоимость пакета',     `${fmtN(baseRaw || baseTotal)} ₽/мес.`, `${fmtN(stdRaw)} ₽/мес.`,       `от ${fmtN(optRaw)} ₽/мес.`,       true),
+    totalRow('Стоимость пакета',     `${fmtN(baseRaw || baseTotal)} ₽/мес.`, `${fmtN(stdRaw)} ₽/мес.`,       `${fmtN(optRaw)} ₽/мес.`,       true),
     totalRow(`Скидка ${discNum}%`,   `−${fmtN(discAmt)} ₽`,                 `−${fmtN(discAmt)} ₽`,           `−${fmtN(discAmt)} ₽`,             false),
-    totalRow('Стоимость со скидкой', `${new Intl.NumberFormat('ru-RU').format(baseTotal)} ₽/мес.`,           `${fmtN(standardTotal)} ₽/мес.`, `от ${fmtN(optimaTotal)} ₽/мес.`, false),
+    totalRow('Стоимость со скидкой', `${new Intl.NumberFormat('ru-RU').format(baseTotal)} ₽/мес.`,           `${fmtN(standardTotal)} ₽/мес.`, `${fmtN(optimaTotal)} ₽/мес.`, false),
   ] : [
-    totalRow('Стоимость пакета', `${new Intl.NumberFormat('ru-RU').format(baseTotal)} ₽/мес.`, `${fmtN(standardTotal)} ₽/мес.`, `от ${fmtN(optimaTotal)} ₽/мес.`, true),
+    totalRow('Стоимость пакета', `${new Intl.NumberFormat('ru-RU').format(baseTotal)} ₽/мес.`, `${fmtN(standardTotal)} ₽/мес.`, `${fmtN(optimaTotal)} ₽/мес.`, true),
   ];
 
   // Загрузка логотипа (квадратный 512×512 → показываем 72×72)
