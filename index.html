@@ -19,21 +19,23 @@
   <div style="background:#fff;border-radius:16px;padding:40px 32px;max-width:360px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:center">
     <img src="logo.png" alt="Доверительная бухгалтерия" style="height:60px;width:auto;margin-bottom:24px">
     <p style="font-size:14px;color:#888;margin:0 0 20px">Введите пароль для доступа</p>
-    <input id="auth-input" type="password" placeholder="Пароль" style="width:100%;box-sizing:border-box;padding:12px 16px;border:1px solid #ddd;border-radius:8px;font-size:16px;outline:none;margin-bottom:8px" onkeydown="if(event.key==='Enter')checkAuth()">
-    <div id="auth-error" style="color:#e05a00;font-size:13px;min-height:20px;margin-bottom:8px"></div>
-    <button onclick="checkAuth()" style="width:100%;padding:14px;background:#E35611;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer">Войти</button>
+    <form id="auth-form" onsubmit="checkAuth();return false;" autocomplete="on">
+      <input id="auth-input" type="password" name="password" autocomplete="current-password" placeholder="Пароль" style="width:100%;box-sizing:border-box;padding:12px 16px;border:1px solid #ddd;border-radius:8px;font-size:16px;outline:none;margin-bottom:8px">
+      <div id="auth-error" style="color:#e05a00;font-size:13px;min-height:20px;margin-bottom:8px"></div>
+      <button type="submit" style="width:100%;padding:14px;background:#E35611;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer">Войти</button>
+    </form>
   </div>
 </div>
 <script>
 (function(){
   var PWD = 'buhstart2026';
   var screen = document.getElementById('auth-screen');
-  if(sessionStorage.getItem('auth') === '1'){ screen.style.display = 'none'; return; }
+  if(localStorage.getItem('auth') === '1'){ screen.style.display = 'none'; return; }
   screen.style.display = 'flex';
-  document.getElementById('auth-input').focus();
+  setTimeout(function(){ document.getElementById('auth-input').focus(); }, 50);
   window.checkAuth = function(){
     var val = document.getElementById('auth-input').value;
-    if(val === PWD){ sessionStorage.setItem('auth','1'); screen.style.display='none'; }
+    if(val === PWD){ localStorage.setItem('auth','1'); screen.style.display='none'; }
     else { document.getElementById('auth-error').textContent='Неверный пароль'; document.getElementById('auth-input').select(); }
   };
 })();
