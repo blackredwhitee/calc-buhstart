@@ -811,7 +811,7 @@ function generateKP() {
   // Стандарт
   const taxQual2 = ['ausn_dr','usn15','osno'].includes(A.tax);
   const stdLines = [['Базовая', baseRaw, null]];
-  if (A.priorityManager) stdLines.push(['Приоритетный ответ менеджера', Math.round(baseTotal * 0.2), '20% от базовой']);
+  if (A.priorityManager) stdLines.push(['Приоритетный ответ менеджера', Math.round(baseRaw * 0.2), '20% от базовой']);
   if (A.taxMgmt && taxQual2) stdLines.push(['Налоговый менеджмент', P.tax_mgmt, null]);
   if (A.officeBuh) stdLines.push(['Бухгалтер в офисе (' + (A.officeBuhDays||5)*4 + ' дн/мес)', (A.officeBuhDays||5)*4*7500, null]);
   const stdRaw2 = discNum > 0 ? Math.round(standardTotal / (1 - discNum / 100)) : standardTotal;
