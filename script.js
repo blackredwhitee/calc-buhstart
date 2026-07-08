@@ -279,7 +279,7 @@ function calcTotal() {
   const priorityPrice  = disc > 0 ? Math.round(priorityPriceRaw  * (1 - disc / 100)) : priorityPriceRaw;
 
   const standardLines = [
-    { name:'Приоритетная скорость ответа менеджера', selected: A.priorityManager, price: priorityPrice,
+    { name:'Приоритетная скорость ответа менеджера', selected: A.priorityManager, price: priorityPriceRaw,
       detail: A.priorityManager ? `+20% от базы` : '' },
     { name:'Налоговый менеджмент', selected: A.taxMgmt, price: taxMgmtPrice },
     { name: A.officeBuh ? `Бухгалтер в офисе (${(A.officeBuhDays||5)*4} смен/мес.)` : 'Бухгалтер в офисе',
@@ -728,12 +728,13 @@ function buildSummary() {
   const stdEl = document.getElementById('sum-standard');
   if (stdBlock) stdBlock.style.display = stdSelected.length ? 'block' : 'none';
   if (stdEl) {
+    const stdDiscAmt = res.standardRaw - res.standardTotal;
     stdEl.innerHTML = stdSelected.map(l =>
       `<div class="sum-line">
         <span class="sum-line-name">${esc(l.name)}</span>
         ${l.price ? `<span class="sum-line-price">+${fmt(l.price)}</span>` : ''}
       </div>`
-    ).join('');
+    ).join('') + (disc > 0 ? `<div class="sum-modifier"><span>Скидка ${disc}%</span><span>−${fmt(stdDiscAmt)}</span></div>` : '');
     const stdTotalEl = document.getElementById('sum-total-standard');
     if (stdTotalEl) stdTotalEl.textContent = fmt(res.standardTotal) + '/мес';
   }
@@ -744,11 +745,13 @@ function buildSummary() {
   const optEl = document.getElementById('sum-optima');
   if (optBlock) optBlock.style.display = optSelected.length ? 'block' : 'none';
   if (optEl) {
+    const optDiscAmt = res.optimaRaw - res.optimaTotal;
     optEl.innerHTML = optSelected.map(l =>
       `<div class="sum-line">
         <span class="sum-line-name">${esc(l.name)}</span>
+        ${l.price ? `<span class="sum-line-price">+${fmt(l.price)}</span>` : ''}
       </div>`
-    ).join('');
+    ).join('') + (disc > 0 ? `<div class="sum-modifier"><span>Скидка ${disc}%</span><span>−${fmt(optDiscAmt)}</span></div>` : '');
     const optTotalEl = document.getElementById('sum-total-optima');
     if (optTotalEl) optTotalEl.textContent = fmt(res.optimaTotal) + '/мес';
   }
