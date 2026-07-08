@@ -411,34 +411,16 @@
         <h2 class="slide-title">Управленческий учёт</h2>
         <p class="slide-sub">Входит в пакет Оптима · от 50 000 ₽</p>
         <div class="grid-2" id="g-mgmt-acc">
-          <button class="ccard ccard--lg" data-val="yes" onclick="pick(this,'g-mgmt-acc');showMgmtItems(true)">
+          <button class="ccard ccard--lg" data-val="yes" onclick="pick(this,'g-mgmt-acc');updateTotal()">
             <span class="cc-icon">✅</span><span class="cc-label">Да</span>
             <span class="cc-sub">от 50 000 ₽</span>
           </button>
-          <button class="ccard ccard--lg" data-val="no" onclick="pick(this,'g-mgmt-acc');showMgmtItems(false)">
+          <button class="ccard ccard--lg" data-val="no" onclick="pick(this,'g-mgmt-acc');updateTotal()">
             <span class="cc-icon">➖</span><span class="cc-label">Нет</span>
           </button>
         </div>
-        <div id="mgmt-items-block" style="display:none; margin-top:20px;">
-          <p class="slide-sub" style="margin-bottom:10px;">Отметьте необходимые отчёты</p>
-          <div class="checks-list">
-            <label class="chk-label">
-              <input type="checkbox" id="mgmt-dds-odds" onchange="collectMgmtItems();updateTotal()"/>
-              <span>ДДС и ОДДС</span>
-            </label>
-            <label class="chk-label">
-              <input type="checkbox" id="mgmt-pl" onchange="collectMgmtItems();updateTotal()"/>
-              <span>P&amp;L — отчёт о прибылях и убытках</span>
-            </label>
-            <label class="chk-label">
-              <input type="checkbox" id="mgmt-budget" onchange="collectMgmtItems();updateTotal()"/>
-              <span>Бюджетирование</span>
-            </label>
-            <label class="chk-label">
-              <input type="checkbox" id="mgmt-contractors" onchange="collectMgmtItems();updateTotal()"/>
-              <span>Работа с контрагентами по задолженностям и сбор документов</span>
-            </label>
-          </div>
+        <div style="margin-top:16px; padding:14px 16px; background:#fff8f4; border-radius:8px; font-size:13px; color:#666; line-height:1.5;">
+          Включает: построение ОДДС и ОПиУ, расчёт и анализ ключевых показателей прибыльности компании
         </div>
       </div>
 
@@ -660,6 +642,6 @@
 <script src="docx.min.js"></script>
 <script src="pizzip.js"></script>
 <script src="docxtemplater.js"></script>
-<script src="script.js?v=50kp"></script>
+<script src="script.js?v=51desc"></script>
 </body>
 </html>
