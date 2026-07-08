@@ -1241,11 +1241,11 @@ async function buildKPDocx(ex, client, kpData) {
   const optRaw  = optimaTotal  + discAmt;
 
   const totalRows = discNum > 0 ? [
-    totalRow('Итого',                `${fmtN(baseRaw || baseTotal)} ₽/мес.`, `${fmtN(stdRaw)} ₽/мес.`,       `от ${fmtN(optRaw)} ₽/мес.`,       true),
+    totalRow('Стоимость пакета',     `${fmtN(baseRaw || baseTotal)} ₽/мес.`, `${fmtN(stdRaw)} ₽/мес.`,       `от ${fmtN(optRaw)} ₽/мес.`,       true),
     totalRow(`Скидка ${discNum}%`,   `−${fmtN(discAmt)} ₽`,                 `−${fmtN(discAmt)} ₽`,           `−${fmtN(discAmt)} ₽`,             false),
     totalRow('Стоимость со скидкой', `${fmtN(baseTotal)} ₽/мес.`,           `${fmtN(standardTotal)} ₽/мес.`, `от ${fmtN(optimaTotal)} ₽/мес.`, false),
   ] : [
-    totalRow('Итого', `${fmtN(baseTotal)} ₽/мес.`, `${fmtN(standardTotal)} ₽/мес.`, `от ${fmtN(optimaTotal)} ₽/мес.`, true),
+    totalRow('Стоимость пакета', `${fmtN(baseTotal)} ₽/мес.`, `${fmtN(standardTotal)} ₽/мес.`, `от ${fmtN(optimaTotal)} ₽/мес.`, true),
   ];
 
   // Загрузка логотипа (квадратный 512×512 → показываем 72×72)
