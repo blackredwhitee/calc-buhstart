@@ -1282,12 +1282,12 @@ async function buildKPDocx(ex, client, kpData) {
 
   // Блок итогов
   const discNum = Number(disc) || 0;
-  // Скидка применяется только к базовой части — надбавки не дисконтируются отдельно
-  const baseRaw2    = discNum > 0 ? (baseRaw || baseTotal) : baseTotal;
+  // Цена до скидки для каждого тарифа — обратный расчёт от итоговой суммы
+  const baseRaw2    = discNum > 0 ? Math.round(baseTotal / (1 - discNum / 100)) : baseTotal;
+  const stdRaw      = discNum > 0 ? Math.round(standardTotal / (1 - discNum / 100)) : standardTotal;
+  const optRaw      = discNum > 0 ? Math.round(optimaTotal / (1 - discNum / 100)) : optimaTotal;
   const baseDiscAmt = baseRaw2 - baseTotal;
-  const stdRaw      = baseRaw2 + (standardTotal - baseTotal);
   const stdDiscAmt  = stdRaw - standardTotal;
-  const optRaw      = baseRaw2 + (optimaTotal - baseTotal);
   const optDiscAmt  = optRaw - optimaTotal;
 
   const totalRows = discNum > 0 ? [
