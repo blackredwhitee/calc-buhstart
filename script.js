@@ -844,7 +844,7 @@ function downloadInvoice() {
   // Фиксируем номер счёта при первом вызове, повторные — тот же номер
   if (!lastInvoice) lastInvoice = { invNum: nextNum('СЧ') };
   const invNum = lastInvoice.invNum;
-  buildInvoiceDocx(EX, {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||''}, lastKP.lines, lastKP.total, invNum)
+  buildInvoiceDocx(EX, {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||''}, lastKP.lines, lastKP.optimaTotal, invNum)
     .then(b => { downloadBlob(b, `Счёт_${safeF(A.name)}_${todayFile()}.docx`); showToast('Счёт скачивается'); saveToCloud(); })
     .catch(e => { console.error('Invoice docx error:', e); showToast('Ошибка формирования файла'); });
 }
@@ -1572,12 +1572,9 @@ async function buildInvoiceDocx(ex, client, services, total, invNum) {
   const today = new Date();
   const today_s = today.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
   const filt = services.filter(function(s){ return !s.individual; });
-  const subtotal = filt.reduce(function(s,x){ return s+(x.price||0); }, 0);
-  const disc = Number(A.discount) || 0;
-  const discAmount = disc > 0 ? Math.round(subtotal * disc / 100) : 0;
-  const fullTotal = disc > 0 ? Math.round(subtotal * (1 - disc / 100)) : subtotal;
-  // Счёт выставляется на сумму предоплаты: 50%, но не менее 20 000 ₽
-  const finalTotal = Math.max(Math.round(fullTotal * 0.5), PREPAYMENT_AMOUNT);
+  // Счёт выставляется на максимальный тариф (Оптима), переданный как total
+  // Предоплата: 50%, но не менее 20 000 ₽
+  const finalTotal = Math.max(Math.round(total * 0.5), PREPAYMENT_AMOUNT);
   const fmtN = function(n){ return new Intl.NumberFormat('ru-RU',{minimumFractionDigits:0,maximumFractionDigits:0}).format(n||0); };
   const fmtI = function(n){ return new Intl.NumberFormat('ru-RU').format(Math.round(n||0)); };
 
