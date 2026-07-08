@@ -754,7 +754,7 @@ function generateKP() {
   collectStep(11);
   clearErrs();
   const res = calcTotal();
-  const { total, lines, hasIndividual, baseTotal, baseLines, standardTotal, standardLines, optimaTotal, optimaLines } = res;
+  const { total, lines, hasIndividual, baseTotal, baseRaw, baseLines, standardTotal, standardLines, optimaTotal, optimaLines, disc } = res;
   if (!A.name) {
     setErr('err-final','Введите название клиента — вернитесь на шаг 11');
     return;
@@ -762,7 +762,7 @@ function generateKP() {
   // Guard: не инкрементировать счётчик при повторном вызове
   const kpNum = lastKP ? lastKP.kpNum : nextNum('КП');
   const kpText = buildKPText(total, lines, hasIndividual, kpNum);
-  lastKP = { text:kpText, kpNum, total, lines, hasIndividual, baseTotal, baseLines, standardTotal, standardLines, optimaTotal, optimaLines };
+  lastKP = { text:kpText, kpNum, total, lines, hasIndividual, baseTotal, baseRaw, baseLines, standardTotal, standardLines, optimaTotal, optimaLines, disc };
 
   document.getElementById('kp-meta').textContent = `${kpNum} · ${todayLong()}`;
   document.getElementById('kp-preview').textContent = kpText;
@@ -1360,12 +1360,15 @@ async function buildKPDocx(ex, client, kpData) {
   }
 
   // Список строк услуг для таблицы
+  // Стандарт и Оптима услуги показываются всегда — ✓ если выбрано, — если нет
+  const taxQualifies = ['ausn_dr','usn15','osno'].includes(A.tax);
+  const baseCount = (baseLines || []).length;
   const svcRows = [
     ...(baseLines || []).map((l, i) => svcRow(kpDesc(l.name), true, true, true, i % 2 === 1)),
-    ...(A.priorityManager ? [svcRow('Гарантированный приоритетный ответ менеджера в течение рабочего дня', false, true, true)] : []),
-    ...(A.taxMgmt         ? [svcRow('Проведение консультаций по налогообложению, оптимизация налоговой нагрузки', false, true, true)] : []),
-    ...(A.officeBuh       ? [svcRow(`Присутствие бухгалтера от компании (аутстаффинг) в офисе заказчика — ${(A.officeBuhDays||5)*4} рабочих дней в месяц`, false, true, true)] : []),
-    ...(A.mgmtAcc         ? [svcRow('Построение ОДДС и ОПиУ, расчёт и анализ ключевых показателей прибыльности компании', false, false, true)] : []),
+    svcRow('Гарантированный приоритетный ответ менеджера в течение рабочего дня', false, A.priorityManager, A.priorityManager, baseCount % 2 === 0),
+    ...(taxQualifies ? [svcRow('Проведение консультаций по налогообложению, оптимизация налоговой нагрузки', false, A.taxMgmt, A.taxMgmt, baseCount % 2 === 1)] : []),
+    svcRow(`Присутствие бухгалтера от компании (аутстаффинг) в офисе заказчика — ${(A.officeBuhDays||5)*4} рабочих дней в месяц`, false, A.officeBuh, A.officeBuh, baseCount % 2 === 0),
+    svcRow('Построение ОДДС и ОПиУ, расчёт и анализ ключевых показателей прибыльности компании', false, false, A.mgmtAcc, baseCount % 2 === 1),
   ];
 
   // Параграф-разделитель
