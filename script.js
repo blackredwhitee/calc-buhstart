@@ -779,32 +779,49 @@ function generateKP() {
   document.getElementById('kp-summary-client').textContent = A.name + (A.entity ? ' · ' + A.entity : '') + (!A.isNull && A.tax ? ' · ' + (taxNames2[A.tax] || A.tax) : '');
   document.getElementById('kp-summary-valid').textContent = kpValidStr();
 
-  // Breakdown
+  // Breakdown — три мини-сметы
   const n = v => new Intl.NumberFormat('ru-RU').format(v) + ' ₽';
-  const bdLine = (name, price, note) => {
-    const notePart = note ? ' <span style="color:var(--gray-400);font-size:11px">(' + note + ')</span>' : '';
-    return '<div class="kp-breakdown-line"><span class="bl-name">' + name + notePart + '</span><span class="bl-price">' + n(price) + '</span></div>';
-  };
-  const bdSep = () => '<div class="kp-breakdown-sep"></div>';
-  const bdSec = label => `<div class="kp-breakdown-section">${label}</div>`;
   const discNum = Number(disc) || 0;
-  const discAmt = discNum > 0 ? baseRaw - baseTotal : 0;
-  let bdHtml = bdSec('Базовая');
-  (baseLines || []).forEach(l => { bdHtml += bdLine(l.name, l.price); });
-  if (discNum > 0) {
-    bdHtml += '<div class="kp-breakdown-line" style="color:var(--accent)"><span class="bl-name">Скидка ' + discNum + '%</span><span class="bl-price" style="color:var(--accent)">−' + n(discAmt) + '</span></div>';
-  }
-  const hasStd = A.priorityManager || (A.taxMgmt && ['ausn_dr','usn15','osno'].includes(A.tax)) || A.officeBuh;
-  if (hasStd) {
-    bdHtml += bdSep() + bdSec('Доп. услуги Стандарт');
-    if (A.priorityManager) bdHtml += bdLine('Приоритетный ответ менеджера', Math.round(baseTotal * 0.2), '20% от базовой');
-    if (A.taxMgmt && ['ausn_dr','usn15','osno'].includes(A.tax)) bdHtml += bdLine('Налоговый менеджмент', P.tax_mgmt);
-    if (A.officeBuh) bdHtml += bdLine(`Бухгалтер в офисе (${(A.officeBuhDays||5)*4} дн/мес)`, (A.officeBuhDays||5)*4*7500);
-  }
-  if (A.mgmtAcc) {
-    bdHtml += bdSep() + bdSec('Доп. услуга Оптима');
-    bdHtml += bdLine('Управленческий учёт', OPTIMA_BASE_PRICE);
-  }
+
+  const bdBlock = (title, lines, rawTotal, discAmt, finalTotal) => {
+    let h = '<div class="bd-block">';
+    h += '<div class="bd-block-title">' + title + '</div>';
+    lines.forEach(([name, price, note]) => {
+      const notePart = note ? ' <span class="bd-note">(' + note + ')</span>' : '';
+      h += '<div class="bd-row"><span class="bd-name">' + name + notePart + '</span><span class="bd-price">' + n(price) + '</span></div>';
+    });
+    h += '<div class="bd-divider"></div>';
+    h += '<div class="bd-row bd-subtotal"><span class="bd-name">Итого ' + title + '</span><span class="bd-price">' + n(rawTotal) + '</span></div>';
+    if (discNum > 0) {
+      h += '<div class="bd-row bd-discount"><span class="bd-name">Скидка ' + discNum + '%</span><span class="bd-price">−' + n(discAmt) + '</span></div>';
+      h += '<div class="bd-row bd-final"><span class="bd-name">Итого со скидкой</span><span class="bd-price">' + n(finalTotal) + '</span></div>';
+    }
+    h += '</div>';
+    return h;
+  };
+
+  // Базовая
+  const baseDiscAmt = baseRaw - baseTotal;
+  const baseLines2 = (baseLines || []).map(l => [l.name, l.price, null]);
+  let bdHtml = bdBlock('Базовая', baseLines2, baseRaw, baseDiscAmt, baseTotal);
+
+  // Стандарт
+  const taxQual2 = ['ausn_dr','usn15','osno'].includes(A.tax);
+  const stdLines = [['Базовая', baseRaw, null]];
+  if (A.priorityManager) stdLines.push(['Приоритетный ответ менеджера', Math.round(baseTotal * 0.2), '20% от базовой']);
+  if (A.taxMgmt && taxQual2) stdLines.push(['Налоговый менеджмент', P.tax_mgmt, null]);
+  if (A.officeBuh) stdLines.push(['Бухгалтер в офисе (' + (A.officeBuhDays||5)*4 + ' дн/мес)', (A.officeBuhDays||5)*4*7500, null]);
+  const stdRaw2 = discNum > 0 ? Math.round(standardTotal / (1 - discNum / 100)) : standardTotal;
+  const stdDiscAmt2 = stdRaw2 - standardTotal;
+  bdHtml += bdBlock('Стандарт', stdLines, stdRaw2, stdDiscAmt2, standardTotal);
+
+  // Оптима
+  const optLines = [['Базовая', baseRaw, null]];
+  if (A.mgmtAcc) optLines.push(['Управленческий учёт', OPTIMA_BASE_PRICE, null]);
+  const optRaw2 = discNum > 0 ? Math.round(optimaTotal / (1 - discNum / 100)) : optimaTotal;
+  const optDiscAmt2 = optRaw2 - optimaTotal;
+  bdHtml += bdBlock('Оптима', optLines, optRaw2, optDiscAmt2, optimaTotal);
+
   const bdEl = document.getElementById('kp-breakdown');
   document.getElementById('kp-breakdown-lines').innerHTML = bdHtml;
   bdEl.style.display = 'block';

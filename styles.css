@@ -150,13 +150,17 @@ body{font-family:var(--fb);background:#e8e6e1;color:var(--gray-800);line-height:
 .kp-summary-meta{display:flex;flex-direction:column;gap:6px}
 .kp-summary-meta-row{display:flex;align-items:baseline;gap:8px;font-size:13px;color:var(--gray-600)}
 .kp-summary-meta-label{font-weight:600;color:var(--gray-400);font-size:12px;min-width:110px}
-.kp-breakdown{margin-top:20px;padding-top:16px;border-top:1px solid var(--gray-200)}
-.kp-breakdown-title{font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
-.kp-breakdown-line{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--gray-600);padding:3px 0}
-.kp-breakdown-line .bl-name{color:var(--gray-700)}
-.kp-breakdown-line .bl-price{font-variant-numeric:tabular-nums;color:var(--gray-500);white-space:nowrap}
-.kp-breakdown-sep{height:1px;background:var(--gray-200);margin:8px 0}
-.kp-breakdown-section{font-size:11px;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.04em;margin:10px 0 4px}
+.kp-breakdown{margin-top:20px;padding-top:16px;border-top:1px solid var(--gray-200);display:flex;flex-direction:column;gap:12px}
+.bd-block{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:14px 16px}
+.bd-block-title{font-size:11px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.bd-row{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;padding:2px 0}
+.bd-name{color:var(--gray-700)}
+.bd-price{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--gray-600)}
+.bd-note{color:var(--gray-400);font-size:11px}
+.bd-divider{height:1px;background:var(--gray-200);margin:8px 0}
+.bd-subtotal .bd-name,.bd-subtotal .bd-price{font-weight:600;color:var(--gray-800)}
+.bd-discount .bd-name,.bd-discount .bd-price{color:var(--accent)}
+.bd-final .bd-name,.bd-final .bd-price{font-weight:700;color:var(--gray-900)}
 .contract-summary{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--r-md);padding:24px 28px;display:flex;flex-direction:column;gap:14px}
 .contract-summary-row{display:flex;align-items:baseline;gap:12px;font-size:14px;color:var(--gray-700)}
 .contract-summary-label{font-size:12px;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.04em;min-width:100px}
