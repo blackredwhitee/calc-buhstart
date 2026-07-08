@@ -123,7 +123,7 @@ const EXECUTORS = [
 ];
 
 // ─── URL Google Apps Script (заменить после деплоя) ──
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw1Vzwi4U1e46Egq9B6vqBNvkMvthiFvQZCppmMnePx5CAjtn3dwRSPYvyHDcNXWX_m/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzQYyLPG0xRSLwW1CHcdOcQ8ESPl1rhEwYaThHECfr5PHxBZRaF5iziPiZx4D_dk5Zw/exec';
 
 // ─── Глобальные переменные стоимостей (менять только здесь) ──────────────
 const PREPAYMENT_AMOUNT = 20000;   // Счёт выставляется на эту сумму
