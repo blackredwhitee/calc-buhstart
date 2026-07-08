@@ -268,7 +268,7 @@ function calcTotal() {
   const taxMgmtPrice      = A.taxMgmt && ['ausn_dr','usn15','osno'].includes(A.tax) ? P.tax_mgmt : 0;
   const officeBuhPrice    = A.officeBuh ? (A.officeBuhDays || 5) * 4 * 7500 : 0;
   const standardRaw       = baseRaw + priorityPriceRaw + taxMgmtPrice + officeBuhPrice;
-  const optimaRaw         = baseRaw + (A.mgmtAcc ? OPTIMA_BASE_PRICE : 0);
+  const optimaRaw         = standardRaw + (A.mgmtAcc ? OPTIMA_BASE_PRICE : 0);
 
   // Скидка применяется к каждому пакету целиком
   const baseTotal     = disc > 0 ? Math.round(baseRaw     * (1 - disc / 100)) : baseRaw;
@@ -815,8 +815,8 @@ function generateKP() {
   const stdDiscAmt2 = stdRaw2 - standardTotal;
   bdHtml += bdBlock('Стандарт', stdLines, stdRaw2, stdDiscAmt2, standardTotal);
 
-  // Оптима
-  const optLines = [['Базовая', baseRaw, null]];
+  // Оптима = Стандарт + управленческий учёт
+  const optLines = [['Стандарт', stdRaw2, null]];
   if (A.mgmtAcc) optLines.push(['Управленческий учёт', OPTIMA_BASE_PRICE, null]);
   const optRaw2 = discNum > 0 ? Math.round(optimaTotal / (1 - discNum / 100)) : optimaTotal;
   const optDiscAmt2 = optRaw2 - optimaTotal;
@@ -1380,9 +1380,9 @@ async function buildKPDocx(ex, client, kpData) {
   const baseCount = (baseLines || []).length;
   const svcRows = [
     ...(baseLines || []).map((l, i) => svcRow(kpDesc(l.name), true, true, true, i % 2 === 1)),
-    svcRow('Гарантированный приоритетный ответ менеджера в течение рабочего дня', false, !!A.priorityManager, false, baseCount % 2 === 0),
-    svcRow('Проведение консультаций по налогообложению, оптимизация налоговой нагрузки', false, !!(A.taxMgmt && taxQualifies), false, baseCount % 2 === 1),
-    svcRow(A.officeBuh ? `Присутствие бухгалтера от компании (аутстаффинг) в офисе заказчика — ${(A.officeBuhDays||5)*4} рабочих дней в месяц` : 'Присутствие бухгалтера от компании (аутстаффинг) в офисе заказчика', false, !!A.officeBuh, false, baseCount % 2 === 0),
+    svcRow('Гарантированный приоритетный ответ менеджера в течение рабочего дня', false, !!A.priorityManager, !!A.priorityManager, baseCount % 2 === 0),
+    svcRow('Проведение консультаций по налогообложению, оптимизация налоговой нагрузки', false, !!(A.taxMgmt && taxQualifies), !!(A.taxMgmt && taxQualifies), baseCount % 2 === 1),
+    svcRow(A.officeBuh ? `Присутствие бухгалтера от компании (аутстаффинг) в офисе заказчика — ${(A.officeBuhDays||5)*4} рабочих дней в месяц` : 'Присутствие бухгалтера от компании (аутстаффинг) в офисе заказчика', false, !!A.officeBuh, !!A.officeBuh, baseCount % 2 === 0),
     svcRow('Построение ОДДС и ОПиУ, расчёт и анализ ключевых показателей прибыльности компании', false, false, !!A.mgmtAcc, baseCount % 2 === 1),
   ];
 
