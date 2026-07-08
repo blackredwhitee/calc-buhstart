@@ -261,15 +261,22 @@ function calcTotal() {
     if (A.spot)     { const pr = (A.spotCount||1) * 1000; baseLines.push({ name:`СПОТ (${A.spotCount||1} док.)`, price: pr }); baseRaw += pr; }
   }
 
-  // Скидка применяется к базе
   const disc = Number(A.discount) || 0;
-  const baseTotal = disc > 0 ? Math.round(baseRaw * (1 - disc / 100)) : baseRaw;
 
-  // Стандарт-надбавки
-  const priorityPrice = A.priorityManager ? Math.round(baseTotal * 0.2) : 0;
-  const taxMgmtPrice  = A.taxMgmt && ['ausn_dr','usn15','osno'].includes(A.tax) ? P.tax_mgmt : 0;
-  const officeBuhPrice = A.officeBuh ? (A.officeBuhDays || 5) * 4 * 7500 : 0;
-  const standardTotal = baseTotal + priorityPrice + taxMgmtPrice + officeBuhPrice;
+  // Считаем полную стоимость каждого пакета ДО скидки
+  const priorityPriceRaw  = A.priorityManager ? Math.round(baseRaw * 0.2) : 0;
+  const taxMgmtPrice      = A.taxMgmt && ['ausn_dr','usn15','osno'].includes(A.tax) ? P.tax_mgmt : 0;
+  const officeBuhPrice    = A.officeBuh ? (A.officeBuhDays || 5) * 4 * 7500 : 0;
+  const standardRaw       = baseRaw + priorityPriceRaw + taxMgmtPrice + officeBuhPrice;
+  const optimaRaw         = baseRaw + (A.mgmtAcc ? OPTIMA_BASE_PRICE : 0);
+
+  // Скидка применяется к каждому пакету целиком
+  const baseTotal     = disc > 0 ? Math.round(baseRaw     * (1 - disc / 100)) : baseRaw;
+  const standardTotal = disc > 0 ? Math.round(standardRaw * (1 - disc / 100)) : standardRaw;
+  const optimaTotal   = disc > 0 ? Math.round(optimaRaw   * (1 - disc / 100)) : optimaRaw;
+
+  // Цены надбавок после скидки (для отображения в разбивке)
+  const priorityPrice  = disc > 0 ? Math.round(priorityPriceRaw  * (1 - disc / 100)) : priorityPriceRaw;
 
   const standardLines = [
     { name:'Приоритетная скорость ответа менеджера', selected: A.priorityManager, price: priorityPrice,
@@ -282,15 +289,14 @@ function calcTotal() {
   // Оптима
   const optimaLines = [];
   if (A.mgmtAcc) optimaLines.push({ name: 'Управленческий учёт', price: OPTIMA_BASE_PRICE, selected: true });
-  const optimaTotal = baseTotal + (A.mgmtAcc ? OPTIMA_BASE_PRICE : 0);
 
   // Обратная совместимость (договор, счёт берут lines/total)
   return {
     total: baseTotal, lines: baseLines, hasIndividual: false,
     baseRaw,
     baseTotal, baseLines,
-    standardLines, standardTotal,
-    optimaLines, optimaTotal,
+    standardRaw, standardLines, standardTotal,
+    optimaRaw, optimaLines, optimaTotal,
     disc,
   };
 }
@@ -1141,7 +1147,7 @@ async function buildKPDocx(ex, client, kpData) {
     AlignmentType, BorderStyle, WidthType, ShadingType, VerticalAlign, ImageRun,
   } = window.docx;
 
-  const { kpNum, baseTotal, baseLines, standardTotal, optimaTotal, disc, baseRaw } = kpData;
+  const { kpNum, baseTotal, baseLines, standardTotal, optimaTotal, disc, baseRaw, standardRaw, optimaRaw } = kpData;
   const fmtN = n => new Intl.NumberFormat('ru-RU').format(Math.round(n || 0));
   const validDate = new Date();
   validDate.setDate(validDate.getDate() + (Number(A.kpValidDays) || 5));
@@ -1282,10 +1288,9 @@ async function buildKPDocx(ex, client, kpData) {
 
   // Блок итогов
   const discNum = Number(disc) || 0;
-  // Цена до скидки для каждого тарифа — обратный расчёт от итоговой суммы
-  const baseRaw2    = discNum > 0 ? Math.round(baseTotal / (1 - discNum / 100)) : baseTotal;
-  const stdRaw      = discNum > 0 ? Math.round(standardTotal / (1 - discNum / 100)) : standardTotal;
-  const optRaw      = discNum > 0 ? Math.round(optimaTotal / (1 - discNum / 100)) : optimaTotal;
+  const baseRaw2    = baseRaw || baseTotal;
+  const stdRaw      = standardRaw || standardTotal;
+  const optRaw      = optimaRaw  || optimaTotal;
   const baseDiscAmt = baseRaw2 - baseTotal;
   const stdDiscAmt  = stdRaw - standardTotal;
   const optDiscAmt  = optRaw - optimaTotal;
