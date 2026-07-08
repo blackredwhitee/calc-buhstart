@@ -281,7 +281,7 @@ function calcTotal() {
 
   // Оптима
   const optimaLines = [];
-  const optimaTotal = baseTotal + OPTIMA_BASE_PRICE;
+  const optimaTotal = baseTotal + (A.mgmtAcc ? OPTIMA_BASE_PRICE : 0);
 
   // Обратная совместимость (договор, счёт берут lines/total)
   return {
