@@ -19,7 +19,7 @@ body{font-family:var(--fb);background:#e8e6e1;color:var(--gray-800);line-height:
 /* HERO */
 .hero{background:#fff;color:var(--gray-900);padding:56px 40px 80px;position:relative;overflow:hidden;margin-bottom:-48px;z-index:1;border-bottom:1px solid var(--gray-200);text-align:center;min-height:100vh;display:flex;align-items:center;justify-content:center;box-sizing:border-box}
 .hero-inner{max-width:640px;position:relative;z-index:1;margin:0 auto;display:flex;flex-direction:column;align-items:center}
-.hero-logo{height:90px;width:auto;margin-bottom:24px;display:block}
+.hero-logo{height:70px;width:auto;margin-bottom:24px;display:block}
 .hero-badge{display:inline-block;color:var(--or-600);font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:18px}
 .hero-title{font-family:var(--fd);font-size:clamp(26px,4.5vw,44px);font-weight:800;line-height:1.1;letter-spacing:-.02em;margin-bottom:14px}
 .hero-sub{font-size:15px;line-height:1.65;color:var(--gray-500);margin-bottom:28px;max-width:480px}
