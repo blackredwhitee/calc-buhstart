@@ -771,6 +771,32 @@ function generateKP() {
   document.getElementById('kp-price-opt').textContent = new Intl.NumberFormat('ru-RU').format(optimaTotal);
   document.getElementById('kp-summary-client').textContent = A.name + (A.entity ? ' · ' + A.entity : '') + (!A.isNull && A.tax ? ' · ' + (taxNames2[A.tax] || A.tax) : '');
   document.getElementById('kp-summary-valid').textContent = kpValidStr();
+
+  // Breakdown
+  const n = v => new Intl.NumberFormat('ru-RU').format(v) + ' ₽';
+  const bdLine = (name, price, note) => {
+    const notePart = note ? ' <span style="color:var(--gray-400);font-size:11px">(' + note + ')</span>' : '';
+    return '<div class="kp-breakdown-line"><span class="bl-name">' + name + notePart + '</span><span class="bl-price">' + n(price) + '</span></div>';
+  };
+  const bdSep = () => '<div class="kp-breakdown-sep"></div>';
+  const bdSec = label => `<div class="kp-breakdown-section">${label}</div>`;
+  let bdHtml = bdSec('Базовая');
+  (baseLines || []).forEach(l => { bdHtml += bdLine(l.name, l.price); });
+  const hasStd = A.priorityManager || (A.taxMgmt && ['ausn_dr','usn15','osno'].includes(A.tax)) || A.officeBuh;
+  if (hasStd) {
+    bdHtml += bdSep() + bdSec('Доп. услуги Стандарт');
+    if (A.priorityManager) bdHtml += bdLine('Приоритетный ответ менеджера', Math.round(baseTotal * 0.2), '20% от базовой');
+    if (A.taxMgmt && ['ausn_dr','usn15','osno'].includes(A.tax)) bdHtml += bdLine('Налоговый менеджмент', P.tax_mgmt);
+    if (A.officeBuh) bdHtml += bdLine(`Бухгалтер в офисе (${(A.officeBuhDays||5)*4} дн/мес)`, (A.officeBuhDays||5)*4*7500);
+  }
+  if (A.mgmtAcc) {
+    bdHtml += bdSep() + bdSec('Доп. услуга Оптима');
+    bdHtml += bdLine('Управленческий учёт', OPTIMA_BASE_PRICE);
+  }
+  const bdEl = document.getElementById('kp-breakdown');
+  document.getElementById('kp-breakdown-lines').innerHTML = bdHtml;
+  bdEl.style.display = 'block';
+
   const sec = document.getElementById('kp-sec');
   sec.style.display = 'block';
   document.getElementById('quiz-wrap').style.display = 'none';
