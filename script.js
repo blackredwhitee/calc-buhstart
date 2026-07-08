@@ -1303,16 +1303,15 @@ async function buildKPDocx(ex, client, kpData) {
   // Используем глобальный SERVICE_DESCS через getServiceDescription
   function kpDesc(name) { return getServiceDescription(name); }
 
-  // Список строк услуг для таблицы
-  // Стандарт и Оптима услуги показываются всегда — ✓ если выбрано, — если нет
+  // Строки появляются только если выбраны, галочка — только в колонке своего тарифа
   const taxQualifies = ['ausn_dr','usn15','osno'].includes(A.tax);
   const baseCount = (baseLines || []).length;
   const svcRows = [
     ...(baseLines || []).map((l, i) => svcRow(kpDesc(l.name), true, true, true, i % 2 === 1)),
-    svcRow('Гарантированный приоритетный ответ менеджера в течение рабочего дня', false, A.priorityManager, false, baseCount % 2 === 0),
-    ...(taxQualifies ? [svcRow('Проведение консультаций по налогообложению, оптимизация налоговой нагрузки', false, A.taxMgmt, false, baseCount % 2 === 1)] : []),
-    svcRow(`Присутствие бухгалтера от компании (аутстаффинг) в офисе заказчика — ${(A.officeBuhDays||5)*4} рабочих дней в месяц`, false, A.officeBuh, false, baseCount % 2 === 0),
-    svcRow('Построение ОДДС и ОПиУ, расчёт и анализ ключевых показателей прибыльности компании', false, false, A.mgmtAcc, baseCount % 2 === 1),
+    ...(A.priorityManager ? [svcRow('Гарантированный приоритетный ответ менеджера в течение рабочего дня', false, true, false, baseCount % 2 === 0)] : []),
+    ...(A.taxMgmt && taxQualifies ? [svcRow('Проведение консультаций по налогообложению, оптимизация налоговой нагрузки', false, true, false, baseCount % 2 === 1)] : []),
+    ...(A.officeBuh ? [svcRow(`Присутствие бухгалтера от компании (аутстаффинг) в офисе заказчика — ${(A.officeBuhDays||5)*4} рабочих дней в месяц`, false, true, false, baseCount % 2 === 0)] : []),
+    ...(A.mgmtAcc ? [svcRow('Построение ОДДС и ОПиУ, расчёт и анализ ключевых показателей прибыльности компании', false, false, true, baseCount % 2 === 1)] : []),
   ];
 
   // Параграф-разделитель
