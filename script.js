@@ -1274,16 +1274,20 @@ async function buildKPDocx(ex, client, kpData) {
 
   // Блок итогов
   const discNum = Number(disc) || 0;
-  const discAmt = Math.round((baseRaw || baseTotal) - baseTotal);
-  const stdRaw  = standardTotal + discAmt;
-  const optRaw  = optimaTotal  + discAmt;
+  // Восстанавливаем цены до скидки для каждого тарифа отдельно
+  const baseRaw2 = discNum > 0 ? Math.round(baseTotal / (1 - discNum / 100)) : baseTotal;
+  const stdRaw   = discNum > 0 ? Math.round(standardTotal / (1 - discNum / 100)) : standardTotal;
+  const optRaw   = discNum > 0 ? Math.round(optimaTotal / (1 - discNum / 100)) : optimaTotal;
+  const baseDiscAmt = baseRaw2 - baseTotal;
+  const stdDiscAmt  = stdRaw - standardTotal;
+  const optDiscAmt  = optRaw - optimaTotal;
 
   const totalRows = discNum > 0 ? [
-    totalRow('Стоимость пакета',     `${fmtN(baseRaw || baseTotal)} ₽/мес.`, `${fmtN(stdRaw)} ₽/мес.`,       `${fmtN(optRaw)} ₽/мес.`,       true),
-    totalRow(`Скидка ${discNum}%`,   `−${fmtN(discAmt)} ₽`,                 `−${fmtN(discAmt)} ₽`,           `−${fmtN(discAmt)} ₽`,             false),
-    totalRow('Стоимость со скидкой', `${new Intl.NumberFormat('ru-RU').format(baseTotal)} ₽/мес.`,           `${fmtN(standardTotal)} ₽/мес.`, `${fmtN(optimaTotal)} ₽/мес.`, false),
+    totalRow('Стоимость пакета',     `${fmtN(baseRaw2)} ₽/мес.`,  `${fmtN(stdRaw)} ₽/мес.`,       `${fmtN(optRaw)} ₽/мес.`,       true),
+    totalRow(`Скидка ${discNum}%`,   `−${fmtN(baseDiscAmt)} ₽`,   `−${fmtN(stdDiscAmt)} ₽`,        `−${fmtN(optDiscAmt)} ₽`,        false),
+    totalRow('Стоимость со скидкой', `${fmtN(baseTotal)} ₽/мес.`, `${fmtN(standardTotal)} ₽/мес.`, `${fmtN(optimaTotal)} ₽/мес.`,  false),
   ] : [
-    totalRow('Стоимость пакета', `${new Intl.NumberFormat('ru-RU').format(baseTotal)} ₽/мес.`, `${fmtN(standardTotal)} ₽/мес.`, `${fmtN(optimaTotal)} ₽/мес.`, true),
+    totalRow('Стоимость пакета', `${fmtN(baseTotal)} ₽/мес.`, `${fmtN(standardTotal)} ₽/мес.`, `${fmtN(optimaTotal)} ₽/мес.`, true),
   ];
 
   // Загрузка логотипа (квадратный 512×512 → показываем 72×72)
