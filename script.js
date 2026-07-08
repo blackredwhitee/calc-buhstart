@@ -281,6 +281,7 @@ function calcTotal() {
 
   // Оптима
   const optimaLines = [];
+  if (A.mgmtAcc) optimaLines.push({ name: 'Управленческий учёт', price: OPTIMA_BASE_PRICE, selected: true });
   const optimaTotal = baseTotal + (A.mgmtAcc ? OPTIMA_BASE_PRICE : 0);
 
   // Обратная совместимость (договор, счёт берут lines/total)
