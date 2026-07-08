@@ -816,7 +816,13 @@ function generateContract() {
   if (!lastContract) lastContract = {};
   if (!lastContract.cNum) lastContract.cNum = nextNum('Д');
   const cNum = lastContract.cNum;
-  const cText = buildContractText(lastKP.total, lastKP.lines, cNum);
+  const allContractLines = [
+    ...lastKP.baseLines,
+    ...(lastKP.standardLines || []).filter(l => l.selected),
+    ...(lastKP.optimaLines || []).filter(l => l.selected),
+  ];
+  const allContractTotal = allContractLines.reduce((s, l) => s + (l.price || 0), 0);
+  const cText = buildContractText(allContractTotal, allContractLines, cNum);
   lastContract.text = cText;
 
   document.getElementById('contract-meta').textContent = `${cNum} · ${todayLong()}`;
@@ -827,7 +833,7 @@ function generateContract() {
   sec.scrollIntoView({ behavior:'smooth', block:'start' });
 
   const fname = `Договор_${safeF(A.name)}_${todayFile()}.docx`;
-  buildContractDocx(EX, {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||'',ogrn:A.req.ogrn||'',ogrnip:A.req.ogrn||'',director:A.req.director||''}, lastKP.lines, lastKP.total, cNum)
+  buildContractDocx(EX, {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||'',ogrn:A.req.ogrn||'',ogrnip:A.req.ogrn||'',director:A.req.director||''}, allContractLines, allContractTotal, cNum)
     .then(b => { downloadBlob(b, fname); showToast('Договор скачивается'); })
     .catch(e => { console.error('Contract docx error:', e); showToast('Ошибка формирования файла'); });
 }
@@ -850,7 +856,9 @@ function downloadInvoice() {
 }
 function downloadContract() {
   if (!lastContract) { showToast('Договор не сформирован'); return; }
-  buildContractDocx(EX, {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||'',ogrn:A.req.ogrn||'',ogrnip:A.req.ogrn||'',director:A.req.director||''}, lastKP.lines, lastKP.total, lastContract.cNum)
+  const allDlLines = [...lastKP.baseLines, ...(lastKP.standardLines||[]).filter(l=>l.selected), ...(lastKP.optimaLines||[]).filter(l=>l.selected)];
+  const allDlTotal = allDlLines.reduce((s,l) => s+(l.price||0), 0);
+  buildContractDocx(EX, {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||'',ogrn:A.req.ogrn||'',ogrnip:A.req.ogrn||'',director:A.req.director||''}, allDlLines, allDlTotal, lastContract.cNum)
     .then(b => { downloadBlob(b, `Договор_${safeF(A.name)}_${todayFile()}.docx`); showToast('Договор скачивается'); saveToCloud(); })
     .catch(e => { console.error('Contract docx error:', e); showToast('Ошибка формирования файла'); });
 }
