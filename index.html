@@ -28,14 +28,19 @@
 </div>
 <script>
 (function(){
-  var PWD = 'buhstart2026';
+  var HASH = 'f834638a1e4c977382b739516a4f664eae673d0fe651ffef7b059b0465ae4cb6';
   var screen = document.getElementById('auth-screen');
   if(localStorage.getItem('auth') === '1'){ screen.style.display = 'none'; return; }
   screen.style.display = 'flex';
   setTimeout(function(){ document.getElementById('auth-input').focus(); }, 50);
-  window.checkAuth = function(){
+  async function sha256(str) {
+    var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+  window.checkAuth = async function(){
     var val = document.getElementById('auth-input').value;
-    if(val === PWD){ localStorage.setItem('auth','1'); screen.style.display='none'; }
+    var h = await sha256(val);
+    if(h === HASH){ localStorage.setItem('auth','1'); screen.style.display='none'; }
     else { document.getElementById('auth-error').textContent='Неверный пароль'; document.getElementById('auth-input').select(); }
   };
 })();
@@ -685,6 +690,6 @@
 <script src="docx.min.js"></script>
 <script src="pizzip.js"></script>
 <script src="docxtemplater.js"></script>
-<script src="script.js?v=62kptext"></script>
+<script src="script.js?v=63hash"></script>
 </body>
 </html>
