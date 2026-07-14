@@ -572,7 +572,7 @@
     </div>
     <div class="doc-next">
       <div class="post-kp-actions">
-        <button class="btn btn-accent btn-xl" onclick="openReqModal('contract')">Сформировать договор →</button>
+        <button class="btn btn-accent btn-xl" onclick="openReqModal('contract')">Сформировать оферту →</button>
         <button class="btn btn-accent btn-xl" onclick="openReqModal('invoice')">Выставить счёт →</button>
         <button class="btn btn-ghost btn-xl" onclick="showFinal()">Завершить без документов</button>
       </div>
@@ -584,14 +584,13 @@
 <div class="doc-sec" id="contract-sec" style="display:none">
   <div class="doc-inner">
     <div class="doc-hdr">
-      <div><h2 class="doc-title">Договор оказания услуг</h2><p class="doc-sub" id="contract-meta"></p></div>
+      <div><h2 class="doc-title">Публичная оферта</h2><p class="doc-sub" id="contract-meta"></p></div>
       <div class="doc-acts">
-        <button class="btn btn-primary" onclick="downloadContract()">⬇ Скачать договор</button>
+        <button class="btn btn-primary" onclick="downloadContract()">⬇ Скачать оферту</button>
       </div>
     </div>
     <div class="contract-summary" id="contract-preview">
       <div class="contract-summary-row"><span class="contract-summary-label">Клиент</span><span id="contract-client">—</span></div>
-      <div class="contract-summary-row"><span class="contract-summary-label">Номер</span><span id="contract-num">—</span></div>
       <div class="contract-summary-row"><span class="contract-summary-label">Оплата</span><span>50% предоплата до начала работы, 50% по завершении периода</span></div>
     </div>
     <div class="doc-next">
@@ -612,7 +611,7 @@
     <div class="final-acts">
       <button class="btn btn-primary btn-xl" onclick="downloadKP()">Скачать КП</button>
       <button class="btn btn-primary btn-xl" onclick="downloadInvoice()">Скачать счёт</button>
-      <button class="btn btn-primary btn-xl" onclick="downloadContract()">Скачать договор</button>
+      <button class="btn btn-primary btn-xl" onclick="downloadContract()">Скачать оферту</button>
       <button class="btn btn-ghost btn-xl" onclick="newQuiz()">Новая заявка</button>
     </div>
   </div>
@@ -690,6 +689,6 @@
 <script src="docx.min.js"></script>
 <script src="pizzip.js"></script>
 <script src="docxtemplater.js"></script>
-<script src="script.js?v=63hash"></script>
+<script src="script.js?v=64offer"></script>
 </body>
 </html>

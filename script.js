@@ -842,28 +842,19 @@ function generateKP() {
 function generateContract() {
   if (!lastKP) { showToast('Сначала сформируйте КП'); return; }
   if (!lastContract) lastContract = {};
-  if (!lastContract.cNum) lastContract.cNum = nextNum('Д');
-  const cNum = lastContract.cNum;
-  const allContractLines = [
-    ...lastKP.baseLines,
-    ...(lastKP.standardLines || []).filter(l => l.selected),
-    ...(lastKP.optimaLines || []).filter(l => l.selected),
-  ];
-  const allContractTotal = allContractLines.reduce((s, l) => s + (l.price || 0), 0);
-  const cText = buildContractText(allContractTotal, allContractLines, cNum);
-  lastContract.text = cText;
 
-  document.getElementById('contract-meta').textContent = `${cNum} · ${todayLong()}`;
+  document.getElementById('contract-meta').textContent = todayLong();
   document.getElementById('contract-client').textContent = A.name || '—';
-  document.getElementById('contract-num').textContent = cNum;
+  document.getElementById('contract-num').textContent = '—';
   const sec = document.getElementById('contract-sec');
   sec.style.display = 'block';
   sec.scrollIntoView({ behavior:'smooth', block:'start' });
 
-  const fname = `Договор_${safeF(A.name)}_${todayFile()}.docx`;
-  buildContractDocx(EX, {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||'',ogrn:A.req.ogrn||'',ogrnip:A.req.ogrn||'',director:A.req.director||''}, allContractLines, allContractTotal, cNum)
-    .then(b => { downloadBlob(b, fname); showToast('Договор скачивается'); })
-    .catch(e => { console.error('Contract docx error:', e); showToast('Ошибка формирования файла'); });
+  const client = {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||'',director:A.req.director||''};
+  const fname = `Оферта_${safeF(A.name)}_${todayFile()}.docx`;
+  buildOfferDocx(EX, client)
+    .then(b => { downloadBlob(b, fname); showToast('Оферта скачивается'); })
+    .catch(e => { console.error('Offer docx error:', e); showToast('Ошибка формирования файла'); });
 }
 
 function downloadKP() {
@@ -883,12 +874,11 @@ function downloadInvoice() {
     .catch(e => { console.error('Invoice docx error:', e); showToast('Ошибка формирования файла'); });
 }
 function downloadContract() {
-  if (!lastContract) { showToast('Договор не сформирован'); return; }
-  const allDlLines = [...lastKP.baseLines, ...(lastKP.standardLines||[]).filter(l=>l.selected), ...(lastKP.optimaLines||[]).filter(l=>l.selected)];
-  const allDlTotal = allDlLines.reduce((s,l) => s+(l.price||0), 0);
-  buildContractDocx(EX, {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||'',ogrn:A.req.ogrn||'',ogrnip:A.req.ogrn||'',director:A.req.director||''}, allDlLines, allDlTotal, lastContract.cNum)
-    .then(b => { downloadBlob(b, `Договор_${safeF(A.name)}_${todayFile()}.docx`); showToast('Договор скачивается'); saveToCloud(); })
-    .catch(e => { console.error('Contract docx error:', e); showToast('Ошибка формирования файла'); });
+  if (!lastKP) { showToast('КП не сформировано'); return; }
+  const client = {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||'',director:A.req.director||''};
+  buildOfferDocx(EX, client)
+    .then(b => { downloadBlob(b, `Оферта_${safeF(A.name)}_${todayFile()}.docx`); showToast('Оферта скачивается'); saveToCloud(); })
+    .catch(e => { console.error('Offer docx error:', e); showToast('Ошибка формирования файла'); });
 }
 
 function showFinal() {
@@ -1009,7 +999,7 @@ function openReqModal(target) {
   modalTarget = target;
   const titles = { contract:'Реквизиты для договора', invoice:'Реквизиты для счёта' };
   document.getElementById('modal-title').textContent = titles[target] || 'Реквизиты';
-  document.getElementById('modal-confirm-btn').textContent = target==='contract' ? 'Сформировать договор →' : 'Сформировать счёт →';
+  document.getElementById('modal-confirm-btn').textContent = target==='contract' ? 'Сформировать оферту →' : 'Сформировать счёт →';
 
   // Показываем инфо о выбранном юрлице
   const info = document.getElementById('modal-exec-info');
@@ -1815,6 +1805,230 @@ async function buildContractDocx(ex, client, services, total, conNum) {
   return _fillDocxTemplate(templateFile, data);
 }
 
+/* ─── ПУБЛИЧНАЯ ОФЕРТА (docx.js) ───────────────────── */
+async function buildOfferDocx(ex, client) {
+  const EXP = window.docx;
+  const { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, WidthType,
+          Table, TableRow, TableCell, ShadingType, VerticalAlign } = EXP;
+
+  const today = new Date();
+  const MONTHS_GEN = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  const dateStr = `«${String(today.getDate()).padStart(2,'0')}» ${MONTHS_GEN[today.getMonth()]} ${today.getFullYear()} г.`;
+
+  const isOOO = (A.entity === 'ООО');
+  const disc = Number(A.discount) || 0;
+  const optimaTotal = lastKP ? lastKP.optimaTotal : 0;
+  const prepay = Math.max(Math.round(optimaTotal * 0.5), PREPAYMENT_AMOUNT);
+
+  // Вводный блок — зависит от типа юрлица исполнителя
+  const exIsOOO = ex.name && ex.name.startsWith('ООО');
+  const exIntro = exIsOOO
+    ? `Общество с ограниченной ответственностью ${ex.name}, именуемое в дальнейшем «Исполнитель», в лице Генерального директора ${ex.director || '_______________'}, действующего на основании Устава,`
+    : `Индивидуальный предприниматель ${ex.name}, именуемый в дальнейшем «Исполнитель»,`;
+
+  const clientIntro = isOOO
+    ? `и ${client.name || '_______________'}, именуемое в дальнейшем «Заказчик», в лице ${client.director || '_______________'}, действующего на основании Устава, с другой стороны`
+    : `и Индивидуальный предприниматель ${client.name || '_______________'}, именуемый в дальнейшем «Заказчик», с другой стороны`;
+
+  const W = 11906;
+  const MARGIN = 1134; // ~2cm
+  const CONTENT = W - MARGIN * 2;
+
+  function t(text, opts = {}) {
+    return new TextRun({ text: String(text || ''), font: 'Times New Roman', size: 24, ...opts });
+  }
+  function p(children, spacing = 120, align) {
+    if (typeof children === 'string') children = [t(children)];
+    return new Paragraph({ children, alignment: align || AlignmentType.JUSTIFIED, spacing: { after: spacing } });
+  }
+  function pCenter(children, spacing = 120) {
+    if (typeof children === 'string') children = [t(children, { bold: true })];
+    return new Paragraph({ children, alignment: AlignmentType.CENTER, spacing: { after: spacing } });
+  }
+  function h(text) {
+    return new Paragraph({ children: [t(text, { bold: true })], alignment: AlignmentType.LEFT, spacing: { before: 200, after: 100 } });
+  }
+  function li(text) {
+    return new Paragraph({ children: [t('— ' + text)], alignment: AlignmentType.JUSTIFIED, spacing: { after: 60 }, indent: { left: 360 } });
+  }
+
+  const border = { style: BorderStyle.SINGLE, size: 4, color: '000000' };
+  const borders = { top: border, bottom: border, left: border, right: border };
+  function cell(text, opts = {}) {
+    return new TableCell({
+      borders,
+      width: { size: opts.width || 4513, type: WidthType.DXA },
+      verticalAlign: VerticalAlign.TOP,
+      margins: { top: 80, bottom: 80, left: 120, right: 120 },
+      children: [new Paragraph({ alignment: AlignmentType.LEFT, children: [t(text, { bold: opts.bold })], spacing: { after: 60 } })],
+    });
+  }
+
+  const siteUrl = 'https://buhstart.ru/';
+
+  const doc = new Document({
+    sections: [{
+      properties: {
+        page: {
+          size: { width: W, height: 16838 },
+          margin: { top: MARGIN, bottom: MARGIN, left: MARGIN, right: MARGIN },
+        },
+      },
+      children: [
+        pCenter([t('ПУБЛИЧНАЯ ОФЕРТА', { bold: true, size: 28 })], 60),
+        pCenter([t('на оказание услуг по ведению бухгалтерского учёта и обработке данных', { bold: true })], 120),
+        new Paragraph({
+          children: [t('г. Москва'), t('\t'), t(dateStr)],
+          tabStops: [{ type: 'right', position: CONTENT }],
+          spacing: { after: 160 },
+        }),
+
+        p([
+          t(exIntro + ' ' + clientIntro + ', совместно именуемые «Стороны», заключили настоящую публичную оферту о нижеследующем:'),
+        ], 200),
+
+        h('1. Термины и определения'),
+        p('1.1. Оферта — настоящее публичное предложение Исполнителя, адресованное неограниченному кругу лиц, заключить Договор на условиях, изложенных ниже.'),
+        p('1.2. Акцепт — полное и безоговорочное принятие Заказчиком условий Оферты путём совершения действий, указанных в п. 3.2 настоящей Оферты.'),
+        p(`1.3. Тариф — перечень и стоимость услуг, публикуемые на Сайте Исполнителя по адресу: ${siteUrl}`),
+        p('1.4. Заказчик — юридическое лицо или индивидуальный предприниматель, осуществивший Акцепт Оферты.'),
+        p('1.5. Учётная база — информационная база (на основе продуктов 1С или иного ПО), в которой Исполнитель ведёт бухгалтерский и налоговый учёт Заказчика.'),
+
+        h('2. Общие положения'),
+        p('2.1. Настоящая Оферта является официальным предложением Исполнителя заключить Договор на оказание услуг по ведению бухгалтерского учёта и обработке данных (далее — Услуги).'),
+        p('2.2. Оферта является публичной (ст. 437 ГК РФ). Текст Оферты размещён на Сайте Исполнителя и доступен для ознакомления неограниченному кругу лиц.'),
+        p('2.3. Исполнитель оставляет за собой право в любое время вносить изменения в условия Оферты и Тарифы в одностороннем порядке без предварительного уведомления. Новая редакция Оферты и/или Тарифов вступает в силу с момента их размещения на Сайте, если иной срок не указан Исполнителем.'),
+
+        h('3. Предмет Договора и порядок заключения'),
+        p('3.1. Исполнитель обязуется оказывать Заказчику Услуги по ведению бухгалтерского учёта, налогового учёта, а также по обработке данных в соответствии с тарифом «Оптима», а Заказчик обязуется принимать и оплачивать эти Услуги.'),
+        p('3.2. Акцептом (принятием) Оферты является совершение Заказчиком одного из следующих действий:'),
+        li('регистрация на Сайте Исполнителя в качестве Заказчика и заполнение анкеты с указанием сведений об организации (ИП); или'),
+        li('оплата первого счёта, выставленного Исполнителем в соответствии с выбранным Тарифом.'),
+        p('3.3. С момента совершения Акцепта Договор между Исполнителем и Заказчиком считаётся заключённым на условиях Оферты в редакции, действующей на дату Акцепта (п. 2 ст. 437, п. 3 ст. 438 ГК РФ).'),
+        p('3.4. Принятие условий Оферты возможно только в полном объёме. Частичный акцепт не допускается.'),
+
+        h('4. Услуги и Тарифы'),
+        p(`4.1. Перечень Услуг, входящих в тариф «Оптима», определяется Прайс-листом, опубликованным на Сайте Исполнителя по адресу: ${siteUrl}. Прайс-лист является неотъемлемой частью настоящей Оферты.`),
+        p('4.2. В рамках тарифа «Оптима» Исполнитель оказывает Услуги, включающие:'),
+        li('ведение бухгалтерского учёта в соответствии с Федеральным законом № 402-ФЗ от 06.12.2011 «О бухгалтерском учёте»;'),
+        li('ведение налогового учёта, подготовка и сдача налоговой отчётности;'),
+        li('обработка данных, предоставленных Заказчиком, включая формирование отчётов;'),
+        li('построение отчётов ОДДС и ОПиУ (управленческий учёт);'),
+        li('иные услуги, указанные в Прайс-листе.'),
+        p('4.3. Исполнитель вправе оказывать Услуги как лично, так и с привлечением третьих лиц, оставаясь ответственным за их действия перед Заказчиком.'),
+
+        h('5. Права и обязанности Сторон'),
+        p('5.1. Исполнитель обязуется:'),
+        li('оказывать Услуги в соответствии с выбранным Тарифом и требованиями законодательства РФ;'),
+        li('информировать Заказчика об отсутствии документов, необходимых для ведения учёта;'),
+        li('предоставлять Заказчику отчётность для подписания не позднее чем за 5 (пять) рабочих дней до установленного срока сдачи;'),
+        li('обеспечивать сохранность документов и конфиденциальность полученной информации.'),
+        p('5.2. Заказчик обязуется:'),
+        li('предоставлять Исполнителю достоверные документы и информацию в установленные Исполнителем сроки;'),
+        li('своевременно принимать и оплачивать Услуги;'),
+        li('своевременно сообщать об изменениях в учредительных документах, системе налогообложения, открытии/закрытии счетов и иных обстоятельствах, влияющих на оказание Услуг.'),
+        p('5.3. Исполнитель вправе:'),
+        li('приостановить оказание Услуг в случае непредставления документов или неоплаты Услуг Заказчиком;'),
+        li('запрашивать любые документы и информацию, необходимые для оказания Услуг.'),
+        p('5.4. Заказчик вправе проверять ход и качество оказываемых Услуг, не вмешиваясь в деятельность Исполнителя.'),
+
+        h('6. Стоимость и порядок расчётов'),
+        p([
+          t('6.1. Стоимость Услуг по тарифу «Оптима» составляет '),
+          t(`${_fmt(optimaTotal)} (${_rubles2words(optimaTotal).replace(/ \d{2} коп\.$/, '')}) рублей в месяц`, { bold: true }),
+          t('. НДС не облагается в соответствии с применяемой Исполнителем системой налогообложения.'),
+        ]),
+        p([
+          t('6.2. При заключении договора вносится предоплата в размере 50% от стоимости Услуг, но не менее 20 000 (Двадцати тысяч) рублей. Сумма предоплаты составляет '),
+          t(`${_fmt(prepay)} (${_rubles2words(prepay).replace(/ \d{2} коп\.$/, '')}) рублей`, { bold: true }),
+          t('.'),
+        ]),
+        p('6.3. В течение первых двух месяцев стоимость может быть уменьшена (рассчитана по факту выполненных работ). По прошествии 2 месяцев Стороны согласовывают фиксированную ежемесячную стоимость.'),
+        p('6.4. Все расчёты осуществляются безналичным способом на расчётный счёт Исполнителя. Датой оплаты считается день поступления денежных средств на счёт Исполнителя.'),
+        p('6.5. Исполнитель вправе в одностороннем порядке изменять Тарифы с уведомлением Заказчика за 30 (тридцать) календарных дней.'),
+
+        h('7. Порядок оказания Услуг и сдача-приёмка'),
+        p('7.1. Заказчик передаёт Исполнителю документы (скан-копии, электронные файлы) по электронной почте или через согласованный канал связи.'),
+        p('7.2. Исполнитель оказывает Услуги в течение отчётного периода (месяц, квартал, год) в соответствии с Тарифом.'),
+        p('7.3. Ежемесячно, в течение 5 (пяти) рабочих дней с даты окончания отчётного месяца, Исполнитель направляет Заказчику Акт приёмки оказанных услуг.'),
+        p('7.4. Заказчик в течение 5 (пяти) рабочих дней с момента получения Акта обязан подписать Акт или направить мотивированный отказ с перечнем недостатков.'),
+        p('7.5. В случае неподписания Акта и ненаправления мотивированного отказа в установленный срок Услуги считаются принятыми и подлежат оплате в полном объёме.'),
+
+        h('8. Ответственность Сторон'),
+        p('8.1. За неисполнение или ненадлежащее исполнение обязательств по Договору Стороны несут ответственность в соответствии с законодательством РФ.'),
+        p('8.2. Исполнитель не несёт ответственности за достоверность сведений, указанных в первичных документах Заказчика, а также за налоговые последствия действий Заказчика, возникшие вследствие непредставления документов или недостоверной информации.'),
+        p('8.3. Совокупная ответственность Исполнителя ограничивается суммой вознаграждения, уплаченного Заказчиком за последние 3 (три) месяца, предшествующих дате предъявления требования.'),
+        p('8.4. В случае просрочки оплаты более чем на 15 (пятнадцать) календарных дней Исполнитель вправе приостановить оказание Услуг или расторгнуть Договор в одностороннем порядке, уведомив Заказчика за 5 (пять) рабочих дней.'),
+
+        h('9. Конфиденциальность'),
+        p('9.1. Стороны обязуются не разглашать информацию, полученную при исполнении Договора, которая является конфиденциальной, без письменного согласия другой Стороны, за исключением случаев, предусмотренных законодательством РФ.'),
+
+        h('10. Прочие условия'),
+        p('10.1. Настоящая Оферта вступает в силу с момента её размещения на Сайте и действует до её отзыва Исполнителем.'),
+        p('10.2. По всем вопросам, не урегулированным настоящей Офертой, Стороны руководствуются действующим законодательством РФ.'),
+        p('10.3. Все споры и разногласия разрешаются путём переговоров, а при недостижении согласия — в судебном порядке по месту нахождения Исполнителя.'),
+
+        new Paragraph({ children: [], spacing: { before: 300, after: 0 } }),
+        h('11. Реквизиты Сторон'),
+
+        new Table({
+          width: { size: CONTENT, type: WidthType.DXA },
+          columnWidths: [Math.floor(CONTENT/2), CONTENT - Math.floor(CONTENT/2)],
+          rows: [new TableRow({
+            children: [
+              new TableCell({
+                borders,
+                width: { size: Math.floor(CONTENT/2), type: WidthType.DXA },
+                margins: { top: 80, bottom: 80, left: 120, right: 120 },
+                children: [
+                  new Paragraph({ children: [t('ИСПОЛНИТЕЛЬ', { bold: true })], spacing: { after: 80 } }),
+                  new Paragraph({ children: [t(ex.name || '', { bold: true })], spacing: { after: 80 } }),
+                  ...(exIsOOO ? [
+                    new Paragraph({ children: [t(`ИНН: ${ex.inn || ''} / КПП: ${ex.kpp || ''}`)], spacing: { after: 60 } }),
+                  ] : [
+                    new Paragraph({ children: [t(`ИНН: ${ex.inn || ''}`)], spacing: { after: 60 } }),
+                  ]),
+                  new Paragraph({ children: [t(`Банк: ${ex.bank || ''}`)], spacing: { after: 60 } }),
+                  new Paragraph({ children: [t(`Р/с: ${ex.rs || ''}`)], spacing: { after: 60 } }),
+                  new Paragraph({ children: [t(`БИК: ${ex.bik || ''}`)], spacing: { after: 60 } }),
+                  new Paragraph({ children: [t(`К/с: ${ex.ks || ''}`)], spacing: { after: 120 } }),
+                  new Paragraph({ children: [t('Подпись: _______________________')], spacing: { after: 60 } }),
+                  new Paragraph({ children: [t(ex.dirShort || ex.director || '')], spacing: { after: 60 } }),
+                  ...(exIsOOO ? [new Paragraph({ children: [t('М.П.')], spacing: { after: 60 } })] : []),
+                ],
+              }),
+              new TableCell({
+                borders,
+                width: { size: CONTENT - Math.floor(CONTENT/2), type: WidthType.DXA },
+                margins: { top: 80, bottom: 80, left: 120, right: 120 },
+                children: [
+                  new Paragraph({ children: [t('ЗАКАЗЧИК', { bold: true })], spacing: { after: 80 } }),
+                  new Paragraph({ children: [t(client.name || '', { bold: true })], spacing: { after: 80 } }),
+                  ...(isOOO ? [
+                    new Paragraph({ children: [t(`ИНН: ${client.inn || ''} / КПП: ${client.kpp || ''}`)], spacing: { after: 60 } }),
+                  ] : [
+                    new Paragraph({ children: [t(`ИНН: ${client.inn || ''}`)], spacing: { after: 60 } }),
+                  ]),
+                  new Paragraph({ children: [t(`Банк: ${client.bank || ''}`)], spacing: { after: 60 } }),
+                  new Paragraph({ children: [t(`Р/с: ${client.rs || ''}`)], spacing: { after: 60 } }),
+                  new Paragraph({ children: [t(`БИК: ${client.bik || ''}`)], spacing: { after: 60 } }),
+                  new Paragraph({ children: [t(`К/с: ${client.ks || ''}`)], spacing: { after: 120 } }),
+                  new Paragraph({ children: [t('Подпись: _______________________')], spacing: { after: 60 } }),
+                  new Paragraph({ children: [t(client.director || '')], spacing: { after: 60 } }),
+                  ...(isOOO ? [new Paragraph({ children: [t('М.П.')], spacing: { after: 60 } })] : []),
+                ],
+              }),
+            ],
+          })],
+        }),
+      ],
+    }],
+  });
+
+  const buf = await EXP.Packer.toBuffer(doc);
+  return new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+}
+
 /* ─── Сохранение заявки в Google Sheets + Drive ─────── */
 async function _blobToBase64(blob) {
   return new Promise(function(resolve, reject) {
@@ -1861,10 +2075,10 @@ async function saveToCloud() {
       payload.invoiceName   = 'Счёт_' + safeF(A.name) + '_' + todayFile() + '.docx';
     }
 
-    if (lastContract) {
-      var conBlob = await buildContractDocx(EX, {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||'',ogrn:A.req.ogrn||'',ogrnip:A.req.ogrn||'',director:A.req.director||''}, lastKP.lines, lastKP.total, lastContract.cNum);
+    if (lastKP) {
+      var conBlob = await buildOfferDocx(EX, {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||'',director:A.req.director||''});
       payload.contractBase64 = await _blobToBase64(conBlob);
-      payload.contractName   = 'Договор_' + safeF(A.name) + '_' + todayFile() + '.docx';
+      payload.contractName   = 'Оферта_' + safeF(A.name) + '_' + todayFile() + '.docx';
     }
 
     console.log('[saveToCloud] отправка fetch на', APPS_SCRIPT_URL);
