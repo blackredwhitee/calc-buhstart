@@ -845,7 +845,6 @@ function generateContract() {
 
   document.getElementById('contract-meta').textContent = todayLong();
   document.getElementById('contract-client').textContent = A.name || '—';
-  document.getElementById('contract-num').textContent = '—';
   const sec = document.getElementById('contract-sec');
   sec.style.display = 'block';
   sec.scrollIntoView({ behavior:'smooth', block:'start' });
