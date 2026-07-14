@@ -996,7 +996,7 @@ ${EX.address}
 /* ─── Модальное окно реквизитов ──────────────── */
 function openReqModal(target) {
   modalTarget = target;
-  const titles = { contract:'Реквизиты для договора', invoice:'Реквизиты для счёта' };
+  const titles = { contract:'Реквизиты для оферты', invoice:'Реквизиты для счёта' };
   document.getElementById('modal-title').textContent = titles[target] || 'Реквизиты';
   document.getElementById('modal-confirm-btn').textContent = target==='contract' ? 'Сформировать оферту →' : 'Сформировать счёт →';
 
@@ -1877,8 +1877,13 @@ async function buildOfferDocx(ex, client) {
         pCenter([t('ПУБЛИЧНАЯ ОФЕРТА', { bold: true, size: 28 })], 60),
         pCenter([t('на оказание услуг по ведению бухгалтерского учёта и обработке данных', { bold: true })], 120),
         new Paragraph({
-          children: [t('г. Москва'), t('\t'), t(dateStr)],
-          tabStops: [{ type: 'right', position: CONTENT }],
+          children: [t('г. Москва')],
+          alignment: AlignmentType.LEFT,
+          spacing: { after: 0 },
+        }),
+        new Paragraph({
+          children: [t(dateStr)],
+          alignment: AlignmentType.RIGHT,
           spacing: { after: 160 },
         }),
 
