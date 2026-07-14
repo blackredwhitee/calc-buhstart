@@ -1973,58 +1973,25 @@ async function buildOfferDocx(ex, client) {
         p('10.3. Все споры и разногласия разрешаются путём переговоров, а при недостижении согласия — в судебном порядке по месту нахождения Исполнителя.'),
 
         new Paragraph({ children: [], spacing: { before: 300, after: 0 } }),
-        h('11. Реквизиты Сторон'),
+        h('11. Реквизиты Исполнителя'),
 
-        new Table({
-          width: { size: CONTENT, type: WidthType.DXA },
-          columnWidths: [Math.floor(CONTENT/2), CONTENT - Math.floor(CONTENT/2)],
-          rows: [new TableRow({
-            children: [
-              new TableCell({
-                borders,
-                width: { size: Math.floor(CONTENT/2), type: WidthType.DXA },
-                margins: { top: 80, bottom: 80, left: 120, right: 120 },
-                children: [
-                  new Paragraph({ children: [t('ИСПОЛНИТЕЛЬ', { bold: true })], spacing: { after: 80 } }),
-                  new Paragraph({ children: [t(ex.name || '', { bold: true })], spacing: { after: 80 } }),
-                  ...(exIsOOO ? [
-                    new Paragraph({ children: [t(`ИНН: ${ex.inn || ''} / КПП: ${ex.kpp || ''}`)], spacing: { after: 60 } }),
-                  ] : [
-                    new Paragraph({ children: [t(`ИНН: ${ex.inn || ''}`)], spacing: { after: 60 } }),
-                  ]),
-                  new Paragraph({ children: [t(`Банк: ${ex.bank || ''}`)], spacing: { after: 60 } }),
-                  new Paragraph({ children: [t(`Р/с: ${ex.rs || ''}`)], spacing: { after: 60 } }),
-                  new Paragraph({ children: [t(`БИК: ${ex.bik || ''}`)], spacing: { after: 60 } }),
-                  new Paragraph({ children: [t(`К/с: ${ex.ks || ''}`)], spacing: { after: 120 } }),
-                  new Paragraph({ children: [t('Подпись: _______________________')], spacing: { after: 60 } }),
-                  new Paragraph({ children: [t(ex.dirShort || ex.director || '')], spacing: { after: 60 } }),
-                  ...(exIsOOO ? [new Paragraph({ children: [t('М.П.')], spacing: { after: 60 } })] : []),
-                ],
-              }),
-              new TableCell({
-                borders,
-                width: { size: CONTENT - Math.floor(CONTENT/2), type: WidthType.DXA },
-                margins: { top: 80, bottom: 80, left: 120, right: 120 },
-                children: [
-                  new Paragraph({ children: [t('ЗАКАЗЧИК', { bold: true })], spacing: { after: 80 } }),
-                  new Paragraph({ children: [t(client.name || '', { bold: true })], spacing: { after: 80 } }),
-                  ...(isOOO ? [
-                    new Paragraph({ children: [t(`ИНН: ${client.inn || ''} / КПП: ${client.kpp || ''}`)], spacing: { after: 60 } }),
-                  ] : [
-                    new Paragraph({ children: [t(`ИНН: ${client.inn || ''}`)], spacing: { after: 60 } }),
-                  ]),
-                  new Paragraph({ children: [t(`Банк: ${client.bank || ''}`)], spacing: { after: 60 } }),
-                  new Paragraph({ children: [t(`Р/с: ${client.rs || ''}`)], spacing: { after: 60 } }),
-                  new Paragraph({ children: [t(`БИК: ${client.bik || ''}`)], spacing: { after: 60 } }),
-                  new Paragraph({ children: [t(`К/с: ${client.ks || ''}`)], spacing: { after: 120 } }),
-                  new Paragraph({ children: [t('Подпись: _______________________')], spacing: { after: 60 } }),
-                  new Paragraph({ children: [t(client.director || '')], spacing: { after: 60 } }),
-                  ...(isOOO ? [new Paragraph({ children: [t('М.П.')], spacing: { after: 60 } })] : []),
-                ],
-              }),
-            ],
-          })],
-        }),
+        p([t('ИСПОЛНИТЕЛЬ:', { bold: true })], 60),
+        p([t(ex.name || '', { bold: true })], 60),
+        ...(exIsOOO ? [
+          p([t(`ИНН: ${ex.inn || ''} / КПП: ${ex.kpp || ''}`)], 60),
+        ] : [
+          p([t(`ИНН: ${ex.inn || ''}`)], 60),
+        ]),
+        p([t(`Юридический адрес: ${ex.address || ''}`)], 60),
+        p([t(`Банк: ${ex.bank || ''}`)], 60),
+        p([t(`Р/с: ${ex.rs || ''}`)], 60),
+        p([t(`БИК: ${ex.bik || ''}`)], 60),
+        p([t(`К/с: ${ex.ks || ''}`)], 60),
+        p([t(`Телефон: ${ex.phone || ''}`)], 60),
+        p([t(`E-mail: ${ex.email || ''}`)], 200),
+        p([t('Подпись: _______________________')], 60),
+        p([t(ex.dirShort || ex.director || '')], 60),
+        ...(exIsOOO ? [p([t('М.П.')], 60)] : []),
       ],
     }],
   });
