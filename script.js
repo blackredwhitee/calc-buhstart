@@ -176,6 +176,19 @@ const todayShort = () => new Date().toLocaleDateString('ru-RU',{day:'2-digit',mo
 const todayStr = todayLong;
 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const safeF = s => String(s||'').replace(/[\\/:*?"<>|«»]/g,'').replace(/\s+/g,'_').slice(0,40);
+function clientFullName() {
+  const n = A.name || '';
+  if (!n) return n;
+  if (A.entity === 'ООО') {
+    if (/^ООО/i.test(n)) return n;
+    return 'ООО «' + n + '»';
+  }
+  if (A.entity === 'ИП') {
+    if (/^ИП\b|^Индивидуальный/i.test(n)) return n;
+    return 'ИП ' + n;
+  }
+  return n;
+}
 
 /* ─── Прайс (лист «Единый») ───────────────────────── */
 const P = {
@@ -849,7 +862,7 @@ function generateContract() {
   sec.style.display = 'block';
   sec.scrollIntoView({ behavior:'smooth', block:'start' });
 
-  const client = {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||'',director:A.req.director||A.director||''};
+  const client = {name:clientFullName(),inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||'',director:A.req.director||A.director||''};
   const fname = `Оферта_${safeF(A.name)}_${todayFile()}.docx`;
   buildOfferDocx(EX, client)
     .then(b => { downloadBlob(b, fname); showToast('Оферта скачивается'); })
@@ -859,7 +872,7 @@ function generateContract() {
 function downloadKP() {
   if (!lastKP) { showToast('КП не сформировано'); return; }
   showToast('Формируем файл...');
-  buildKPDocx(EX, {name: A.name, inn: A.req.inn, director: A.director}, lastKP)
+  buildKPDocx(EX, {name: clientFullName(), inn: A.req.inn, director: A.director}, lastKP)
     .then(b => { downloadBlob(b, `КП_${safeF(A.name)}_${todayFile()}.docx`); showToast('КП скачивается'); saveToCloud(); })
     .catch(e => { console.error('KP docx error:', e); showToast('Ошибка формирования файла'); });
 }
@@ -868,13 +881,13 @@ function downloadInvoice() {
   // Фиксируем номер счёта при первом вызове, повторные — тот же номер
   if (!lastInvoice) lastInvoice = { invNum: nextNum('СЧ') };
   const invNum = lastInvoice.invNum;
-  buildInvoiceDocx(EX, {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||''}, lastKP.lines, lastKP.optimaTotal, invNum)
+  buildInvoiceDocx(EX, {name:clientFullName(),inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||''}, lastKP.lines, lastKP.optimaTotal, invNum)
     .then(b => { downloadBlob(b, `Счёт_${safeF(A.name)}_${todayFile()}.docx`); showToast('Счёт скачивается'); saveToCloud(); })
     .catch(e => { console.error('Invoice docx error:', e); showToast('Ошибка формирования файла'); });
 }
 function downloadContract() {
   if (!lastKP) { showToast('КП не сформировано'); return; }
-  const client = {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||'',director:A.req.director||A.director||''};
+  const client = {name:clientFullName(),inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||'',director:A.req.director||A.director||''};
   buildOfferDocx(EX, client)
     .then(b => { downloadBlob(b, `Оферта_${safeF(A.name)}_${todayFile()}.docx`); showToast('Оферта скачивается'); saveToCloud(); })
     .catch(e => { console.error('Offer docx error:', e); showToast('Ошибка формирования файла'); });
@@ -2034,19 +2047,19 @@ async function saveToCloud() {
   try {
     console.log('[saveToCloud] старт, payload:', JSON.stringify(payload).slice(0, 200));
 
-    var kpBlob = await buildKPDocx(EX, {name:A.name, inn:A.req.inn, director:A.director}, lastKP);
+    var kpBlob = await buildKPDocx(EX, {name:clientFullName(), inn:A.req.inn, director:A.director}, lastKP);
     payload.kpBase64 = await _blobToBase64(kpBlob);
     payload.kpName   = 'КП_' + safeF(A.name) + '_' + todayFile() + '.docx';
     console.log('[saveToCloud] КП готов, размер base64:', payload.kpBase64.length);
 
     if (lastInvoice) {
-      var invBlob = await buildInvoiceDocx(EX, {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||''}, lastKP.lines, lastKP.total, lastInvoice.invNum);
+      var invBlob = await buildInvoiceDocx(EX, {name:clientFullName(),inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||''}, lastKP.lines, lastKP.total, lastInvoice.invNum);
       payload.invoiceBase64 = await _blobToBase64(invBlob);
       payload.invoiceName   = 'Счёт_' + safeF(A.name) + '_' + todayFile() + '.docx';
     }
 
     if (lastKP) {
-      var conBlob = await buildOfferDocx(EX, {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||'',director:A.req.director||''});
+      var conBlob = await buildOfferDocx(EX, {name:clientFullName(),inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||'',director:A.req.director||A.director||''});
       payload.contractBase64 = await _blobToBase64(conBlob);
       payload.contractName   = 'Оферта_' + safeF(A.name) + '_' + todayFile() + '.docx';
     }
