@@ -2029,8 +2029,7 @@ async function buildOfferDocx(ex, client) {
     }],
   });
 
-  const buf = await EXP.Packer.toBuffer(doc);
-  return new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  return Packer.toBlob(doc);
 }
 
 /* ─── Сохранение заявки в Google Sheets + Drive ─────── */
