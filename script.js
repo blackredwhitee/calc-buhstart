@@ -1821,23 +1821,20 @@ async function buildOfferDocx(ex, client) {
   const MONTHS_GEN = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
   const dateStr = `«${String(today.getDate()).padStart(2,'0')}» ${MONTHS_GEN[today.getMonth()]} ${today.getFullYear()} г.`;
 
-  // Очищаем имя от ООО/ИП-префиксов, которые мог ввести менеджер
-  function stripEntityPrefix(name) {
-    return (name || '').replace(/^ООО\s*[«""]?/i, '').replace(/[»""]/g, '').replace(/^ИП\s+/i, '').trim();
-  }
-  const exIsOOO = A.entity === 'ООО';
-  const exCleanName = stripEntityPrefix(ex.name);
-  // Форма для введения документа (родительный падеж)
+  // Тип исполнителя определяем по его имени, не по выбору клиента
+  const exIsOOO = /^ООО/i.test(ex.name || '');
+  const exCleanName = (ex.name || '').replace(/^ООО\s*[«""]?/i, '').replace(/[»""]$/g, '').trim();
+  // Родительный падеж для вводной части
   const exIntroName = exIsOOO
     ? `Общества с ограниченной ответственностью «${exCleanName}»`
-    : `Индивидуального предпринимателя ${exCleanName}`;
+    : `Индивидуального предпринимателя ${ex.directorGen || ex.director || exCleanName.replace(/^ИП\s+/i, '')}`;
   const exIntroDirector = exIsOOO
     ? `, именуемого в дальнейшем «Исполнитель», в лице Генерального директора ${ex.director || '________________'}, действующего на основании Устава,`
     : `, именуемого в дальнейшем «Исполнитель»,`;
-  // Форма для раздела реквизитов (именительный падеж)
+  // Именительный падеж для раздела реквизитов
   const exFullNameNom = exIsOOO
     ? `Общество с ограниченной ответственностью «${exCleanName}»`
-    : `Индивидуальный предприниматель ${exCleanName}`;
+    : `Индивидуальный предприниматель ${ex.director || exCleanName.replace(/^ИП\s+/i, '')}`;
 
   const W = 11906;
   const MARGIN = 1134;
