@@ -177,16 +177,11 @@ const todayStr = todayLong;
 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const safeF = s => String(s||'').replace(/[\\/:*?"<>|«»]/g,'').replace(/\s+/g,'_').slice(0,40);
 function clientFullName() {
-  const n = A.name || '';
-  if (!n) return n;
-  if (A.entity === 'ООО') {
-    if (/^ООО/i.test(n)) return n;
-    return 'ООО «' + n + '»';
-  }
-  if (A.entity === 'ИП') {
-    if (/^ИП\b|^Индивидуальный/i.test(n)) return n;
-    return 'ИП ' + n;
-  }
+  // Убираем любой ООО/ИП-префикс который мог написать менеджер, чтобы не дублировать
+  const n = (A.name || '').replace(/^ООО\s*[«""]?/i, '').replace(/[»""]$/, '').replace(/^ИП\s+/i, '').trim();
+  if (!n) return '';
+  if (A.entity === 'ООО') return 'ООО «' + n + '»';
+  if (A.entity === 'ИП') return 'ИП ' + n;
   return n;
 }
 
