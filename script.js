@@ -849,7 +849,7 @@ function generateContract() {
   sec.style.display = 'block';
   sec.scrollIntoView({ behavior:'smooth', block:'start' });
 
-  const client = {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||'',director:A.req.director||''};
+  const client = {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||'',director:A.req.director||A.director||''};
   const fname = `Оферта_${safeF(A.name)}_${todayFile()}.docx`;
   buildOfferDocx(EX, client)
     .then(b => { downloadBlob(b, fname); showToast('Оферта скачивается'); })
@@ -874,7 +874,7 @@ function downloadInvoice() {
 }
 function downloadContract() {
   if (!lastKP) { showToast('КП не сформировано'); return; }
-  const client = {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||'',director:A.req.director||''};
+  const client = {name:A.name,inn:A.req.inn,kpp:A.req.kpp,address:A.req.address,phone:A.req.phone,email:A.req.email,rs:A.req.rs,bank:A.req.bank,bik:A.req.bik,ks:A.req.ks||'',director:A.req.director||A.director||''};
   buildOfferDocx(EX, client)
     .then(b => { downloadBlob(b, `Оферта_${safeF(A.name)}_${todayFile()}.docx`); showToast('Оферта скачивается'); saveToCloud(); })
     .catch(e => { console.error('Offer docx error:', e); showToast('Ошибка формирования файла'); });
@@ -1822,7 +1822,7 @@ async function buildOfferDocx(ex, client) {
   // Вводный блок — зависит от типа юрлица исполнителя
   const exIsOOO = ex.name && ex.name.startsWith('ООО');
   const exIntro = exIsOOO
-    ? `Общество с ограниченной ответственностью ${ex.name}, именуемое в дальнейшем «Исполнитель», в лице Генерального директора ${ex.director || '_______________'}, действующего на основании Устава,`
+    ? `${ex.name}, именуемое в дальнейшем «Исполнитель», в лице Генерального директора ${ex.director || '_______________'}, действующего на основании Устава,`
     : `${ex.name}, именуемый в дальнейшем «Исполнитель»,`;
 
   const clientIntro = isOOO
