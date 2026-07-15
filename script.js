@@ -1478,13 +1478,6 @@ async function buildKPDocx(ex, client, kpData) {
 
         // Сноска и срок действия
         new Paragraph({
-          spacing: { before: 0, after: 60 },
-          children: [t(
-            '* Окончательная стоимость услуг определяется после двух месяцев обслуживания, исходя из фактического объёма операций.',
-            { size: 18, italic: true, color: '555555' }
-          )],
-        }),
-        new Paragraph({
           spacing: { before: 0, after: 200 },
           children: [t(`Предложение действует до ${validDateStr}`, { bold: true, size: 22 })],
         }),
