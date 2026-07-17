@@ -193,7 +193,7 @@ const P = {
   tax:   { patent:1000, ausn_d:5000, ausn_dr:20000, usn6:5000, usn15:20000, osno:30000 },
   vat:   { не_облагается:0, освобождение:5000, nds0:0, nds5:5000, nds7:5000, nds10:5000, nds22:10000 },
   niche: {
-    marketplace:20000, wb:20000, ozon:5000, ya:10000, mp_inventory:15000,
+    marketplace:20000, wb:0, ozon:5000, ya:10000, mp_inventory:15000,
     wholesale:20000, wh_inventory:10000,
     retail:20000, rt_inventory:15000,
     production:60000, construction:40000, catering:30000,
@@ -217,8 +217,9 @@ function calcTotal() {
     baseLines.push({ name:'Нулевая отчётность', price });
     baseRaw = price;
   } else {
+    const mpNames = { wb:'Wildberries', ozon:'Ozon', ya:'Яндекс Маркет' };
     const nicheNames = {
-      marketplace:'Маркетплейс РВБ (любой первый)', wholesale:'Оптовая торговля',
+      marketplace: mpNames[A.mp[0]] || 'Маркетплейс', wholesale:'Оптовая торговля',
       retail:'Розничная торговля', production:'Производство',
       construction:'Строительство', catering:'Общепит',
       medicine:'Медицина', services:'Услуги прочие'
@@ -232,10 +233,9 @@ function calcTotal() {
     });
 
     if (A.niches.includes('marketplace')) {
-      const mpNames = { wb:'Wildberries', ozon:'Ozon', ya:'Яндекс Маркет' };
-      A.mp.forEach(m => {
-        const pr = P.niche[m]||0;
-        baseLines.push({ name: mpNames[m]||m, price: pr }); baseRaw += pr;
+      // Первый маркетплейс включён в базовые 20 000 ₽, каждый дополнительный +5 000 ₽
+      A.mp.forEach((m, i) => {
+        if (i > 0) { baseLines.push({ name: mpNames[m]||m, price: 5000 }); baseRaw += 5000; }
       });
       if (A.mpInventory) { baseLines.push({ name:'Товарный учёт', price: P.niche.mp_inventory }); baseRaw += P.niche.mp_inventory; }
     }
