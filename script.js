@@ -1379,9 +1379,17 @@ async function buildKPDocx(ex, client, kpData) {
 
   // Строки появляются только если выбраны, галочка — только в колонке своего тарифа
   const taxQualifies = ['ausn_dr','usn15','osno'].includes(A.tax);
-  const baseCount = (baseLines || []).length;
+  // Дедупликация: убираем строки с одинаковым описанием (например товарный учёт из разных ниш)
+  const seenDescs = new Set();
+  const dedupedLines = (baseLines || []).filter(l => {
+    const desc = kpDesc(l.name);
+    if (seenDescs.has(desc)) return false;
+    seenDescs.add(desc);
+    return true;
+  });
+  const baseCount = dedupedLines.length;
   const svcRows = [
-    ...(baseLines || []).map((l, i) => svcRow(kpDesc(l.name), true, true, true, i % 2 === 1)),
+    ...dedupedLines.map((l, i) => svcRow(kpDesc(l.name), true, true, true, i % 2 === 1)),
     svcRow('Гарантированный приоритетный ответ менеджера в течение рабочего дня', false, !!A.priorityManager, !!A.priorityManager, baseCount % 2 === 0),
     svcRow('Проведение консультаций по налогообложению, оптимизация налоговой нагрузки', false, !!(A.taxMgmt && taxQualifies), !!(A.taxMgmt && taxQualifies), baseCount % 2 === 1),
     svcRow(A.officeBuh ? `Присутствие бухгалтера от компании (аутстаффинг) в офисе заказчика — ${(A.officeBuhDays||5)*4} рабочих дней в месяц` : 'Присутствие бухгалтера от компании (аутстаффинг) в офисе заказчика', false, !!A.officeBuh, !!A.officeBuh, baseCount % 2 === 0),
