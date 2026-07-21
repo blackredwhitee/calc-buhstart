@@ -725,7 +725,7 @@ function buildSummary() {
       <span class="sum-line-name">${esc(l.name)}</span>
       <span class="sum-line-price">${fmt(l.price)}</span>
     </div>`
-  ).join('') + (disc > 0 ? `<div class="sum-modifier"><span>Скидка ${disc}%</span><span>−${fmt(res.baseRaw - res.baseTotal)}</span></div>` : '');
+  ).join('') + (disc > 0 ? `<div class="sum-modifier"><span>Скидка</span><span>−${fmt(res.baseRaw - res.baseTotal)}</span></div>` : '');
   const baseTotalEl = document.getElementById('sum-total-base');
   if (baseTotalEl) baseTotalEl.textContent = fmt(res.baseTotal) + '/мес';
   document.getElementById('sum-total').textContent = fmt(res.baseTotal);
@@ -743,7 +743,7 @@ function buildSummary() {
         <span class="sum-line-name">${esc(l.name)}</span>
         ${l.price ? `<span class="sum-line-price">+${fmt(l.price)}</span>` : ''}
       </div>`
-    ).join('') + (disc > 0 ? `<div class="sum-modifier"><span>Скидка ${disc}%</span><span>−${fmt(stdDiscAmt)}</span></div>` : '');
+    ).join('') + (disc > 0 ? `<div class="sum-modifier"><span>Скидка</span><span>−${fmt(stdDiscAmt)}</span></div>` : '');
     const stdTotalEl = document.getElementById('sum-total-standard');
     if (stdTotalEl) stdTotalEl.textContent = fmt(res.standardTotal) + '/мес';
   }
@@ -761,7 +761,7 @@ function buildSummary() {
         <span class="sum-line-name">${esc(l.name)}</span>
         ${l.price ? `<span class="sum-line-price">+${fmt(l.price)}</span>` : ''}
       </div>`
-    ).join('') + (disc > 0 ? `<div class="sum-modifier"><span>Скидка ${disc}%</span><span>−${fmt(optDiscAmt)}</span></div>` : '');
+    ).join('') + (disc > 0 ? `<div class="sum-modifier"><span>Скидка</span><span>−${fmt(optDiscAmt)}</span></div>` : '');
     const optTotalEl = document.getElementById('sum-total-optima');
     if (optTotalEl) optTotalEl.textContent = fmt(res.optimaTotal) + '/мес';
   }
@@ -806,7 +806,7 @@ function generateKP() {
     h += '<div class="bd-divider"></div>';
     h += '<div class="bd-row bd-subtotal"><span class="bd-name">Итого ' + title + '</span><span class="bd-price">' + n(rawTotal) + '</span></div>';
     if (discNum > 0) {
-      h += '<div class="bd-row bd-discount"><span class="bd-name">Скидка ' + discNum + '%</span><span class="bd-price">−' + n(discAmt) + '</span></div>';
+      h += '<div class="bd-row bd-discount"><span class="bd-name">Скидка</span><span class="bd-price">−' + n(discAmt) + '</span></div>';
       h += '<div class="bd-row bd-final"><span class="bd-name">Итого со скидкой</span><span class="bd-price">' + n(finalTotal) + '</span></div>';
     }
     h += '</div>';
@@ -948,7 +948,7 @@ ${EX.phone} | ${EX.email}
 Подготовили для вас расчёт стоимости бухгалтерских услуг.
 
 Состав услуг:
-${svcLines}${Number(A.discount)>0?'\n  Скидка '+A.discount+'%: −'+fmt(Math.round(total/(1-Number(A.discount)/100)*Number(A.discount)/100)):''}
+${svcLines}${Number(A.discount)>0?'\n  Скидка: −'+fmt(Math.round(total/(1-Number(A.discount)/100)*Number(A.discount)/100)):''}
 
 ИТОГО: ${fmt(total)}${hasIndividual?' + индивидуальные позиции':''}
 
@@ -1316,7 +1316,7 @@ async function buildKPDocx(ex, client, kpData) {
 
   const totalRows = discNum > 0 ? [
     totalRow('Стоимость пакета',     `${fmtN(baseRaw2)} ₽/мес.`,  `${fmtN(stdRaw)} ₽/мес.`,       `${fmtN(optRaw)} ₽/мес.`,       true),
-    totalRow(`Скидка ${discNum}%`,   `−${fmtN(baseDiscAmt)} ₽`,   `−${fmtN(stdDiscAmt)} ₽`,        `−${fmtN(optDiscAmt)} ₽`,        false),
+    totalRow('Скидка',               `−${fmtN(baseDiscAmt)} ₽`,   `−${fmtN(stdDiscAmt)} ₽`,        `−${fmtN(optDiscAmt)} ₽`,        false),
     totalRow('Стоимость со скидкой', `${fmtN(baseTotal)} ₽/мес.`, `${fmtN(standardTotal)} ₽/мес.`, `${fmtN(optimaTotal)} ₽/мес.`,  false),
   ] : [
     totalRow('Стоимость пакета', `${fmtN(baseTotal)} ₽/мес.`, `${fmtN(standardTotal)} ₽/мес.`, `${fmtN(optimaTotal)} ₽/мес.`, true),
@@ -1447,28 +1447,6 @@ async function buildKPDocx(ex, client, kpData) {
             { size: 21 }
           )],
         }),
-        new Paragraph({
-          spacing: { before: 0, after: 200 },
-          children: [t(
-            `${ex.name || 'Компания'} успешно работает с 2003 года и за более чем 20 лет показала высокий уровень профессионализма в налоговом и бухгалтерском сопровождении.`,
-            { size: 21 }
-          )],
-        }),
-        new Paragraph({
-          spacing: { before: 0, after: 200 },
-          children: [t(
-            'В штате компании трудятся 17 бухгалтеров и аудиторов, юристы и программисты, а также 39 удалённых экономистов, что позволяет выполнять проекты любой сложности.',
-            { size: 21 }
-          )],
-        }),
-        new Paragraph({
-          spacing: { before: 0, after: 200 },
-          children: [t(
-            'Мы несём полную материальную ответственность за оказываемые услуги, что закреплено в договоре.',
-            { size: 21 }
-          )],
-        }),
-
         // Таблица сравнения
         new Table({
           width: { size: CONTENT, type: WidthType.DXA },
@@ -1499,9 +1477,8 @@ async function buildKPDocx(ex, client, kpData) {
           spacing: { before: 0, after: 180 },
           children: [t(
             `${ex.name || 'Компания'} успешно работает с 2003 года и за более чем 20 лет показала высокий уровень профессионализма ` +
-            'в налоговом и бухгалтерском сопровождении. В штате компании трудятся 17 бухгалтеров и аудиторов, юристы и программисты, ' +
-            'а также 39 удалённых экономистов, что позволяет выполнять проекты любой сложности. ' +
-            'Мы несём полную материальную ответственность за оказываемые услуги, что закреплено в договоре.',
+            'в налоговом и бухгалтерском сопровождении. В штате компании трудятся 21 человек (бухгалтеры и аудиторы, юристы и программисты), ' +
+            'а также 39 удалённых экономистов, что позволяет выполнять проекты любой сложности.',
             { size: 20 }
           )],
         }),
@@ -1515,8 +1492,7 @@ async function buildKPDocx(ex, client, kpData) {
           spacing: { before: 0, after: 60 },
           children: [t(
             'При заключении договора вносится предоплата в размере 50% от стоимости (не менее 20 000 рублей). ' +
-            'В течение первых двух месяцев стоимость может быть уменьшена (рассчитана по факту выполненных работ). ' +
-            'В таком случае, по прошествии 2 месяцев стороны согласовывают фиксированную ежемесячную стоимость.',
+            'Мы несём полную материальную ответственность за оказываемые услуги, что закреплено в договоре.',
             { size: 20 }
           )],
         }),
