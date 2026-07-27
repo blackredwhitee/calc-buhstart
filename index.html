@@ -381,18 +381,17 @@
         </div>
       </div>
 
-      <!-- ШАГ 10: Приоритетная скорость ответа (Стандарт) -->
+      <!-- ШАГ 10: Приоритетный ответ менеджера (Стандарт) -->
       <div class="slide" data-step="10">
         <div class="slide-icon">⚡</div>
-        <h2 class="slide-title">Приоритетная скорость ответа менеджера</h2>
-        <p class="slide-sub">Входит в пакет Стандарт</p>
+        <h2 class="slide-title">Приоритетный ответ менеджера</h2>
+        <p class="slide-sub">Входит в пакет Стандарт · выберите скорость ответа для клиента</p>
         <div class="grid-2" id="g-priority">
-          <button class="ccard ccard--lg" data-val="yes" onclick="pick(this,'g-priority')">
-            <span class="cc-icon">✅</span><span class="cc-label">Да</span>
-            <span class="cc-sub">+20% от базовой стоимости</span>
+          <button class="ccard ccard--lg" data-val="day" onclick="pick(this,'g-priority')">
+            <span class="cc-icon">🕐</span><span class="cc-label">В течение рабочего дня</span>
           </button>
-          <button class="ccard ccard--lg" data-val="no" onclick="pick(this,'g-priority')">
-            <span class="cc-icon">➖</span><span class="cc-label">Нет</span>
+          <button class="ccard ccard--lg" data-val="15min" onclick="pick(this,'g-priority')">
+            <span class="cc-icon">⚡</span><span class="cc-label">В течение 15 минут</span>
           </button>
         </div>
         <span class="q-err" id="err-priority"></span>
@@ -414,23 +413,25 @@
         </div>
       </div>
 
-      <!-- ШАГ 14: Бухгалтер в офисе (Стандарт) -->
+      <!-- ШАГ 14: Присутствие бухгалтера в офисе (Стандарт) -->
       <div class="slide" data-step="14">
         <div class="slide-icon">🏢</div>
-        <h2 class="slide-title">Бухгалтер в офисе</h2>
-        <p class="slide-sub">Входит в пакет Стандарт · 7 500 ₽ за смену × 4 нед./мес.</p>
-        <div class="grid-2" id="g-office-buh">
-          <button class="ccard ccard--lg" data-val="yes" onclick="pickOfficeBuh(this)">
+        <h2 class="slide-title">Присутствие бухгалтера в офисе</h2>
+        <p class="slide-sub">Входит в пакет Стандарт · 7 500 ₽ за визит</p>
+        <div class="grid-2" id="g-office-buh" style="margin-top:16px">
+          <button class="ccard ccard--lg" data-val="yes" onclick="pick(this,'g-office-buh');document.getElementById('office-buh-visits-row').style.display='flex'">
             <span class="cc-icon">✅</span><span class="cc-label">Да</span>
-            <span class="cc-sub">7 500 ₽ × смен/мес.</span>
           </button>
-          <button class="ccard ccard--lg" data-val="no" onclick="pickOfficeBuh(this)">
+          <button class="ccard ccard--lg" data-val="no" onclick="pick(this,'g-office-buh');document.getElementById('office-buh-visits-row').style.display='none'">
             <span class="cc-icon">➖</span><span class="cc-label">Нет</span>
           </button>
         </div>
-        <div class="num-row" id="office-buh-days-row" style="display:none;margin-top:16px">
-          <label class="q-label">Количество рабочих дней в неделю (макс. 5)</label>
-          <input class="q-input num-input" type="number" id="office-buh-days" min="1" max="5" value="5" onchange="A.officeBuhDays=parseInt(this.value)||5; updateTotal()"/>
+        <div class="num-row" id="office-buh-visits-row" style="margin-top:16px;display:flex">
+          <label class="q-label">Количество визитов в месяц</label>
+          <input class="q-input num-input" type="number" id="office-buh-visits" min="1" max="30" value="4" onchange="A.officeBuhVisits=parseInt(this.value)||4; updateTotal()"/>
+        </div>
+        <div style="margin-top:12px; padding:12px 14px; background:#fff8f4; border-radius:8px; font-size:13px; color:#666; line-height:1.5;">
+          Присутствие бухгалтера от компании в офисе заказчика — без аутстаффинга, в рамках договора на обслуживание
         </div>
       </div>
 
@@ -512,7 +513,7 @@
         <!-- Скидка и срок КП -->
         <div class="fields-list" style="margin-top:16px">
           <div class="field-row">
-            <label class="q-label">Скидка</label>
+            <label class="q-label">Скидка <span style="font-size:11px;color:var(--gray-400)">(макс. 20% — цены уже с наценкой)</span></label>
             <div style="display:flex;flex-wrap:wrap;gap:8px">
               <button class="ccard ccard--sm" onclick="setDiscount(0,this)">Без скидки</button>
               <button class="ccard ccard--sm" onclick="setDiscount(5,this)">5%</button>
@@ -524,6 +525,12 @@
           <div class="field-row" style="margin-top:12px">
             <label class="q-label">КП действует (дней)</label>
             <input class="q-input" type="number" id="kp-valid-days" value="5" min="1" max="365" style="width:120px" oninput="A.kpValidDays=this.value;buildSummary()"/>
+          </div>
+          <div class="field-row" style="margin-top:12px">
+            <label class="chk-label">
+              <input type="checkbox" id="startup-check" onchange="A.startup=this.checked;buildSummary()"/>
+              <span>Стартап / резкая смена деятельности <span style="font-size:12px;color:var(--gray-400)">(добавить условие про первые 2 месяца)</span></span>
+            </label>
           </div>
         </div>
 

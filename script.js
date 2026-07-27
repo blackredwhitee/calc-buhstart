@@ -155,12 +155,14 @@ const A = {
   licenses:false, licenseCount:1,
   spot:false, spotCount:1,
   whInventory:false, rtInventory:false, addPatent:false,
-  // Стандарт (новые шаги)
-  priorityManager:false,
+  // Стандарт
+  priorityManager:'day',   // 'day' | '15min'
   taxMgmt:false,
-  officeBuh:false, officeBuhDays:5,
-  // Оптима (новые шаги)
+  officeBuhPresence:true,  // да/нет присутствие бухгалтера в офисе
+  officeBuhVisits:4,       // кол-во визитов в месяц (если да)
+  // Оптима
   mgmtAcc:false,
+  startup:false,
   discount:0, kpValidDays:5,
   name:'', director:'',
   req:{ inn:'', kpp:'', address:'', phone:'', email:'', rs:'', bank:'', bik:'', ks:'', ogrn:'', director:'' }
@@ -203,6 +205,7 @@ const P = {
   cash:  { none:0, kassa:15000, avans:10000 },
   ved:8000, reconcile:15000, tax_mgmt:20000,
   military_per:2000, licenses:10000,
+  invoice:{ base:8000, std:10000, opt:15000 },
 };
 
 function nextNum(pfx){ const y=new Date().getFullYear(),k=`ctr_${pfx}_${y}`,n=parseInt(localStorage.getItem(k)||'0',10)+1; localStorage.setItem(k,String(n)); return `${pfx}-${y}-${String(n).padStart(4,'0')}`; }
@@ -210,12 +213,12 @@ function nextNum(pfx){ const y=new Date().getFullYear(),k=`ctr_${pfx}_${y}`,n=pa
 /* ─── Расчёт ──────────────────────────────────── */
 function calcTotal() {
   const baseLines = [];
-  let baseRaw = 0;
+  let _minBase = 0; // минимальная цена (из прайса)
 
   if (A.isNull) {
     const price = A.entity === 'ИП' ? P.null_ip : P.null_ooo;
     baseLines.push({ name:'Нулевая отчётность', price });
-    baseRaw = price;
+    _minBase = price;
   } else {
     const mpNames = { wb:'Wildberries', ozon:'Ozon', ya:'Яндекс Маркет' };
     const nicheNames = {
@@ -226,86 +229,99 @@ function calcTotal() {
     };
     A.niches.forEach(niche => {
       const pr = P.niche[niche] || 0;
-      if (pr) { baseLines.push({ name: nicheNames[niche]||niche, price: pr }); baseRaw += pr; }
-      // Товарный учёт идёт сразу под нишей — как в прайсе «в т.ч.»
-      if (niche === 'wholesale' && A.whInventory) { baseLines.push({ name: 'в т.ч. товарный учёт', price: P.niche.wh_inventory }); baseRaw += P.niche.wh_inventory; }
-      if (niche === 'retail'    && A.rtInventory) { baseLines.push({ name: 'в т.ч. товарный учёт', price: P.niche.rt_inventory }); baseRaw += P.niche.rt_inventory; }
+      if (pr) { baseLines.push({ name: nicheNames[niche]||niche, price: pr }); _minBase += pr; }
+      if (niche === 'wholesale' && A.whInventory) { baseLines.push({ name: 'в т.ч. товарный учёт', price: P.niche.wh_inventory }); _minBase += P.niche.wh_inventory; }
+      if (niche === 'retail'    && A.rtInventory) { baseLines.push({ name: 'в т.ч. товарный учёт', price: P.niche.rt_inventory }); _minBase += P.niche.rt_inventory; }
     });
 
     if (A.niches.includes('marketplace')) {
-      // Первый маркетплейс включён в базовые 20 000 ₽, каждый дополнительный +5 000 ₽
       A.mp.forEach((m, i) => {
-        if (i > 0) { baseLines.push({ name: mpNames[m]||m, price: 5000 }); baseRaw += 5000; }
+        if (i > 0) { baseLines.push({ name: mpNames[m]||m, price: 5000 }); _minBase += 5000; }
       });
-      if (A.mpInventory) { baseLines.push({ name:'Товарный учёт', price: P.niche.mp_inventory }); baseRaw += P.niche.mp_inventory; }
+      if (A.mpInventory) { baseLines.push({ name:'Товарный учёт', price: P.niche.mp_inventory }); _minBase += P.niche.mp_inventory; }
     }
 
-    if (A.entity === 'ООО') { baseLines.push({ name:'ООО', price: P.entity_ooo }); baseRaw += P.entity_ooo; }
+    if (A.entity === 'ООО') { baseLines.push({ name:'ООО', price: P.entity_ooo }); _minBase += P.entity_ooo; }
 
     const taxNames = { patent:'Патент', ausn_d:'АУСН Доходы', ausn_dr:'АУСН Доходы-Расходы', usn6:'УСН 6%', usn15:'УСН 15%', osno:'ОСНО' };
     const taxPrice = P.tax[A.tax] || 0;
-    if (taxPrice) { baseLines.push({ name: taxNames[A.tax]||A.tax, price: taxPrice }); baseRaw += taxPrice; }
-    if (A.addPatent && A.tax !== 'patent') { baseLines.push({ name:'Патент (доп.)', price: P.tax.patent }); baseRaw += P.tax.patent; }
+    if (taxPrice) { baseLines.push({ name: taxNames[A.tax]||A.tax, price: taxPrice }); _minBase += taxPrice; }
+    if (A.addPatent && A.tax !== 'patent') { baseLines.push({ name:'Патент (доп.)', price: P.tax.patent }); _minBase += P.tax.patent; }
 
     const vatNames = { не_облагается:'НДС не облагается', освобождение:'Освобождение от НДС (ст.145)', nds0:'НДС 0%', nds5:'НДС 5%', nds7:'НДС 7%', nds10:'НДС 10%', nds22:'НДС 22%' };
     (A.vats||[]).forEach(v => {
       const pr = P.vat[v] || 0;
-      if (pr) { baseLines.push({ name: vatNames[v]||v, price: pr }); baseRaw += pr; }
+      if (pr) { baseLines.push({ name: vatNames[v]||v, price: pr }); _minBase += pr; }
       else if (v === 'не_облагается' || v === 'nds0') { baseLines.push({ name: vatNames[v]||v, price: 0 }); }
     });
 
-    if (A.staffRf === 'rf_1_3') { baseLines.push({ name:'Сотрудники РФ (1–3 чел.)', price: P.staff.rf_1_3 }); baseRaw += P.staff.rf_1_3; }
-    else if (A.staffRf === 'rf_more') { const pr = P.staff.rf_per * A.rfCount; baseLines.push({ name:`Сотрудники РФ (${A.rfCount} чел. × 1 500 ₽)`, price: pr }); baseRaw += pr; }
+    if (A.staffRf === 'rf_1_3') { baseLines.push({ name:'Сотрудники РФ (1–3 чел.)', price: P.staff.rf_1_3 }); _minBase += P.staff.rf_1_3; }
+    else if (A.staffRf === 'rf_more') { const pr = P.staff.rf_per * A.rfCount; baseLines.push({ name:`Сотрудники РФ (${A.rfCount} чел. × 1 500 ₽)`, price: pr }); _minBase += pr; }
 
-    if (A.staffForeign === 'yes') { const pr = P.staff.foreign * A.foreignCount; baseLines.push({ name:`Иностранные сотрудники (${A.foreignCount} чел. × 20 000 ₽)`, price: pr }); baseRaw += pr; }
+    if (A.staffForeign === 'yes') { const pr = P.staff.foreign * A.foreignCount; baseLines.push({ name:`Иностранные сотрудники (${A.foreignCount} чел. × 20 000 ₽)`, price: pr }); _minBase += pr; }
 
-    if (A.cashKassa) { baseLines.push({ name:'Касса (ККМ)', price: P.cash.kassa }); baseRaw += P.cash.kassa; }
-    if (A.cashAvans) { baseLines.push({ name:'Авансовые отчёты', price: P.cash.avans }); baseRaw += P.cash.avans; }
+    if (A.cashKassa) { baseLines.push({ name:'Касса (ККМ)', price: P.cash.kassa }); _minBase += P.cash.kassa; }
+    if (A.cashAvans) { baseLines.push({ name:'Авансовые отчёты', price: P.cash.avans }); _minBase += P.cash.avans; }
 
-    if (A.ved)      { baseLines.push({ name:'ВЭД / Валютные расчёты', price: P.ved }); baseRaw += P.ved; }
-    if (A.reconcile){ baseLines.push({ name:'Сверки с контрагентами', price: P.reconcile }); baseRaw += P.reconcile; }
-    if (A.military) { const pr = P.military_per * A.militaryCount; baseLines.push({ name:`Воинский учёт (${A.militaryCount} чел. × 2 000 ₽)`, price: pr }); baseRaw += pr; }
-    if (A.licenses) { const pr = P.licenses * (A.licenseCount||1); baseLines.push({ name:`Лицензионная отчётность (${A.licenseCount||1} лиц.)`, price: pr }); baseRaw += pr; }
-    if (A.spot)     { const pr = (A.spotCount||1) * 1000; baseLines.push({ name:`СПОТ (${A.spotCount||1} док.)`, price: pr }); baseRaw += pr; }
+    if (A.ved)      { baseLines.push({ name:'ВЭД / Валютные расчёты', price: P.ved }); _minBase += P.ved; }
+    if (A.reconcile){ baseLines.push({ name:'Сверки с контрагентами', price: P.reconcile }); _minBase += P.reconcile; }
+    if (A.military) { const pr = P.military_per * A.militaryCount; baseLines.push({ name:`Воинский учёт (${A.militaryCount} чел. × 2 000 ₽)`, price: pr }); _minBase += pr; }
+    if (A.licenses) { const pr = P.licenses * (A.licenseCount||1); baseLines.push({ name:`Лицензионная отчётность (${A.licenseCount||1} лиц.)`, price: pr }); _minBase += pr; }
+    if (A.spot)     { const pr = (A.spotCount||1) * 1000; baseLines.push({ name:`СПОТ (${A.spotCount||1} dok.)`, price: pr }); _minBase += pr; }
   }
 
+  // Расчётный счёт — всегда в каждом пакете
+  baseLines.push({ name:'Расчётный счёт', price: P.invoice.base });
+
   const disc = Number(A.discount) || 0;
+  const taxQualifies = ['ausn_dr','usn15','osno'].includes(A.tax);
 
-  // Считаем полную стоимость каждого пакета ДО скидки
-  const priorityPriceRaw  = A.priorityManager ? Math.round(baseRaw * 0.2) : 0;
-  const taxMgmtPrice      = A.taxMgmt && ['ausn_dr','usn15','osno'].includes(A.tax) ? P.tax_mgmt : 0;
-  const officeBuhPrice    = A.officeBuh ? (A.officeBuhDays || 5) * 4 * 7500 : 0;
-  const standardRaw       = baseRaw + priorityPriceRaw + taxMgmtPrice + officeBuhPrice;
-  const optimaRaw         = standardRaw + (A.mgmtAcc ? OPTIMA_BASE_PRICE : 0);
+  // Минимальные цены пакетов
+  const _minPriority  = Math.round(_minBase * 0.2); // 20% от базы без счёта
+  const _minTaxMgmt   = taxQualifies ? P.tax_mgmt : 0;
+  const visits        = A.officeBuhPresence ? (A.officeBuhVisits || 4) : 1;
+  const _minOfficeBuh = visits * 7500;
 
-  // Скидка применяется к каждому пакету целиком
-  const baseTotal     = disc > 0 ? Math.round(baseRaw     * (1 - disc / 100)) : baseRaw;
-  const standardTotal = disc > 0 ? Math.round(standardRaw * (1 - disc / 100)) : standardRaw;
-  const optimaTotal   = disc > 0 ? Math.round(optimaRaw   * (1 - disc / 100)) : optimaRaw;
+  // Базовый = client selections + счёт 8000
+  const _minBaseTotal = _minBase + P.invoice.base;
+  // Стандарт = базовый (со счётом 10000 вместо 8000) + приоритет + налогМгмт + офис
+  const _minStd = _minBase + P.invoice.std + _minPriority + _minTaxMgmt + _minOfficeBuh;
+  // Оптима = Стандарт (со счётом 15000) + управленческий учёт
+  const _minOpt = _minBase + P.invoice.opt + _minPriority + _minTaxMgmt + _minOfficeBuh + OPTIMA_BASE_PRICE;
 
-  // Цены надбавок после скидки (для отображения в разбивке)
-  const priorityPrice  = disc > 0 ? Math.round(priorityPriceRaw  * (1 - disc / 100)) : priorityPriceRaw;
+  // Применяем наценку 1/0.8 (цены прайса — минимальные; max скидка 20%)
+  function markup(n) { return Math.round(n / 0.8 / 100) * 100; }
+  const baseRaw     = markup(_minBaseTotal);
+  const standardRaw = markup(_minStd);
+  const optimaRaw   = markup(_minOpt);
 
+  // Применяем скидку
+  function applyDisc(raw) { return Math.round(raw * (1 - disc / 100) / 100) * 100; }
+  const baseTotal     = applyDisc(baseRaw);
+  const standardTotal = applyDisc(standardRaw);
+  const optimaTotal   = applyDisc(optimaRaw);
+
+  // Строки надбавок для отображения в Стандарт
   const standardLines = [
-    { name:'Приоритетная скорость ответа менеджера', selected: A.priorityManager, price: priorityPriceRaw,
-      detail: A.priorityManager ? `+20% от базы` : '' },
-    { name:'Налоговый менеджмент', selected: A.taxMgmt, price: taxMgmtPrice },
-    { name: A.officeBuh ? `Бухгалтер в офисе (${(A.officeBuhDays||5)*4} смен/мес.)` : 'Бухгалтер в офисе',
-      selected: A.officeBuh, price: officeBuhPrice },
+    { name: 'Приоритетный ответ менеджера', selected: true, price: markup(_minPriority), detail: '+20% от базы' },
+    ...(taxQualifies ? [{ name: 'Налоговый менеджмент', selected: true, price: markup(_minTaxMgmt) }] : []),
+    { name: `Присутствие бухгалтера в офисе (${visits} визитов/мес.)`, selected: true, price: markup(_minOfficeBuh) },
+    { name: 'Расчётный счёт (Стандарт)', selected: true, price: markup(P.invoice.std - P.invoice.base) },
   ];
 
-  // Оптима
-  const optimaLines = [];
-  if (A.mgmtAcc) optimaLines.push({ name: 'Управленческий учёт', price: OPTIMA_BASE_PRICE, selected: true });
+  // Строки Оптима
+  const optimaLines = [
+    { name: 'Управленческий учёт', price: markup(OPTIMA_BASE_PRICE), selected: true },
+    { name: 'Расчётный счёт (Оптима)', selected: true, price: markup(P.invoice.opt - P.invoice.std) },
+  ];
 
-  // Обратная совместимость (договор, счёт берут lines/total)
   return {
     total: baseTotal, lines: baseLines, hasIndividual: false,
-    baseRaw,
-    baseTotal, baseLines,
+    baseRaw, baseTotal, baseLines,
     standardRaw, standardLines, standardTotal,
     optimaRaw, optimaLines, optimaTotal,
-    disc,
+    disc, taxQualifies,
+    _minBase, _minStd, _minOpt,
   };
 }
 
@@ -465,7 +481,7 @@ function collectStep(n) {
   }
   if (n===10) {
     const s = document.querySelector('#g-priority .selected');
-    if (s) A.priorityManager = s.dataset.val === 'yes';
+    if (s) A.priorityManager = s.dataset.val; // 'day' | '15min'
   }
   if (n===13) {
     const s = document.querySelector('#g-taxmgmt .selected');
@@ -473,8 +489,9 @@ function collectStep(n) {
   }
   if (n===14) {
     const s = document.querySelector('#g-office-buh .selected');
-    if (s) A.officeBuh = s.dataset.val === 'yes';
-    A.officeBuhDays = parseInt(document.getElementById('office-buh-days').value)||5;
+    if (s) A.officeBuhPresence = s.dataset.val === 'yes';
+    const el = document.getElementById('office-buh-visits');
+    if (el) A.officeBuhVisits = parseInt(el.value) || 4;
   }
   if (n===15) {
     const s = document.querySelector('#g-mgmt-acc .selected');
@@ -535,18 +552,18 @@ function restoreStep(n) {
     document.getElementById('spot-count-row').style.display     = A.spot ? 'flex' : 'none';
   }
   if (n===10) {
-    const restorePick10 = (val) => document.querySelectorAll('#g-priority .ccard').forEach(b => b.classList.toggle('selected', b.dataset.val === val));
-    restorePick10(A.priorityManager ? 'yes' : 'no');
+    document.querySelectorAll('#g-priority .ccard').forEach(b => b.classList.toggle('selected', b.dataset.val === A.priorityManager));
   }
   if (n===13) {
     const restorePick13 = (val) => document.querySelectorAll('#g-taxmgmt .ccard').forEach(b => b.classList.toggle('selected', b.dataset.val === val));
     restorePick13(A.taxMgmt ? 'yes' : 'no');
   }
   if (n===14) {
-    const restorePick14 = (val) => document.querySelectorAll('#g-office-buh .ccard').forEach(b => b.classList.toggle('selected', b.dataset.val === val));
-    restorePick14(A.officeBuh ? 'yes' : 'no');
-    document.getElementById('office-buh-days').value = A.officeBuhDays;
-    document.getElementById('office-buh-days-row').style.display = A.officeBuh ? 'flex' : 'none';
+    document.querySelectorAll('#g-office-buh .ccard').forEach(b => b.classList.toggle('selected', b.dataset.val === (A.officeBuhPresence ? 'yes' : 'no')));
+    const row = document.getElementById('office-buh-visits-row');
+    if (row) row.style.display = A.officeBuhPresence ? 'flex' : 'none';
+    const el = document.getElementById('office-buh-visits');
+    if (el) el.value = A.officeBuhVisits || 4;
   }
   if (n===15) {
     const restorePick15 = (val) => document.querySelectorAll('#g-mgmt-acc .ccard').forEach(b => b.classList.toggle('selected', b.dataset.val === val));
@@ -570,6 +587,8 @@ function restoreStep(n) {
       const pct = m ? parseInt(m[1]) : 0;
       b.classList.toggle('selected', pct === Number(A.discount));
     });
+    const sc = document.getElementById('startup-check');
+    if (sc) sc.checked = A.startup;
   }
 }
 
@@ -692,14 +711,6 @@ function licensesToggle() {
   updateTotal();
 }
 
-function pickOfficeBuh(btn) {
-  document.querySelectorAll('#g-office-buh .ccard').forEach(b => b.classList.remove('selected'));
-  btn.classList.add('selected');
-  collectCurrent();
-  const daysRow = document.getElementById('office-buh-days-row');
-  if (daysRow) daysRow.style.display = A.officeBuh ? 'flex' : 'none';
-  updateTotal();
-}
 
 
 /* ─── Сводка (шаг 12) ────────────────────────── */
@@ -730,11 +741,11 @@ function buildSummary() {
   if (baseTotalEl) baseTotalEl.textContent = fmt(res.baseTotal) + '/мес';
   document.getElementById('sum-total').textContent = fmt(res.baseTotal);
 
-  // Стандарт — Базовая + выбранные надбавки
+  // Стандарт — Базовая + надбавки (всегда включены)
   const stdSelected = res.standardLines.filter(l => l.selected);
   const stdBlock = document.getElementById('sum-block-standard');
   const stdEl = document.getElementById('sum-standard');
-  if (stdBlock) stdBlock.style.display = stdSelected.length ? 'block' : 'none';
+  if (stdBlock) stdBlock.style.display = 'block';
   if (stdEl) {
     const stdDiscAmt = res.standardRaw - res.standardTotal;
     const baseLine = `<div class="sum-line"><span class="sum-line-name">Базовая</span><span class="sum-line-price">${fmt(res.baseRaw)}</span></div>`;
@@ -748,11 +759,11 @@ function buildSummary() {
     if (stdTotalEl) stdTotalEl.textContent = fmt(res.standardTotal) + '/мес';
   }
 
-  // Оптима — Стандарт + управленческий учёт
+  // Оптима — Стандарт + управленческий учёт (показываем всегда)
   const optSelected = res.optimaLines.filter(l => l.selected);
   const optBlock = document.getElementById('sum-block-optima');
   const optEl = document.getElementById('sum-optima');
-  if (optBlock) optBlock.style.display = optSelected.length ? 'block' : 'none';
+  if (optBlock) optBlock.style.display = 'block';
   if (optEl) {
     const optDiscAmt = res.optimaRaw - res.optimaTotal;
     const stdLine = `<div class="sum-line"><span class="sum-line-name">Стандарт</span><span class="sum-line-price">${fmt(res.standardRaw)}</span></div>`;
@@ -772,6 +783,9 @@ let lastKP = null, lastContract = null, lastInvoice = null;
 
 function generateKP() {
   collectStep(11);
+  // Собираем стартап-галочку со шага 12
+  const sc = document.getElementById('startup-check');
+  if (sc) A.startup = sc.checked;
   clearErrs();
   const res = calcTotal();
   const { total, lines, hasIndividual, baseTotal, baseRaw, baseLines, standardTotal, standardLines, optimaTotal, optimaLines, disc } = res;
@@ -782,7 +796,7 @@ function generateKP() {
   // Guard: не инкрементировать счётчик при повторном вызове
   const kpNum = lastKP ? lastKP.kpNum : nextNum('КП');
   const kpText = buildKPText(total, lines, hasIndividual, kpNum);
-  lastKP = { text:kpText, kpNum, total, lines, hasIndividual, baseTotal, baseRaw, baseLines, standardTotal, standardLines, optimaTotal, optimaLines, disc };
+  lastKP = { text:kpText, kpNum, total, lines, hasIndividual, baseTotal, baseRaw, baseLines, standardTotal, standardLines, optimaTotal, optimaLines, disc, taxQualifies: res.taxQualifies };
 
   document.getElementById('kp-meta').textContent = `${kpNum} · ${todayLong()}`;
   const taxNames2 = { patent:'Патент', ausn_d:'АУСН Доходы', ausn_dr:'АУСН Доходы-Расходы', usn6:'УСН 6%', usn15:'УСН 15%', osno:'ОСНО' };
@@ -818,12 +832,14 @@ function generateKP() {
   const baseLines2 = (baseLines || []).map(l => [l.name, l.price, null]);
   let bdHtml = bdBlock('Базовая', baseLines2, baseRaw, baseDiscAmt, baseTotal);
 
-  // Стандарт
+  // Стандарт — всегда включает приоритет, налог.менеджмент (если квалифицируется), присутствие бухгалтера
   const taxQual2 = ['ausn_dr','usn15','osno'].includes(A.tax);
+  const visits2 = A.officeBuhPresence ? (A.officeBuhVisits || 4) : 1;
   const stdLines = [['Базовая', baseRaw, null]];
-  if (A.priorityManager) stdLines.push(['Приоритетный ответ менеджера', Math.round(baseRaw * 0.2), '20% от базовой']);
-  if (A.taxMgmt && taxQual2) stdLines.push(['Налоговый менеджмент', P.tax_mgmt, null]);
-  if (A.officeBuh) stdLines.push(['Бухгалтер в офисе (' + (A.officeBuhDays||5)*4 + ' дн/мес)', (A.officeBuhDays||5)*4*7500, null]);
+  stdLines.push(['Приоритетный ответ менеджера', Math.round(baseRaw * 0.2), '20% от базовой']);
+  if (taxQual2) stdLines.push(['Налоговый менеджмент', P.tax_mgmt, null]);
+  stdLines.push(['Присутствие бухгалтера в офисе (' + visits2 + ' визит.)', visits2 * 7500, null]);
+  stdLines.push(['Расчётный счёт (Стандарт)', P.invoice.std, null]);
   const stdRaw2 = discNum > 0 ? Math.round(standardTotal / (1 - discNum / 100)) : standardTotal;
   const stdDiscAmt2 = stdRaw2 - standardTotal;
   bdHtml += bdBlock('Стандарт', stdLines, stdRaw2, stdDiscAmt2, standardTotal);
@@ -1217,14 +1233,14 @@ async function buildKPDocx(ex, client, kpData) {
     children: [para],
   });
 
-  // Ячейка с галочкой/тире
+  // Ячейка с галочкой (или пустая, если не входит)
   const chk = (yes, w = COL_T, bg) => new TableCell({
     width: { size: w, type: WidthType.DXA },
     shading: bg ? { fill: bg, type: ShadingType.CLEAR } : undefined,
     borders: bord(),
     margins: { top: 60, bottom: 60, left: 40, right: 40 },
     verticalAlign: VerticalAlign.CENTER,
-    children: [p(t(yes ? '✓' : '—', { bold: yes, size: 22, color: yes ? '217346' : 'CCCCCC' }), AlignmentType.CENTER)],
+    children: [p(t(yes ? '✓' : '', { bold: yes, size: 22, color: '217346' }), AlignmentType.CENTER)],
   });
 
   // Строка таблицы с галочками
@@ -1374,27 +1390,43 @@ async function buildKPDocx(ex, client, kpData) {
     ]})],
   });
 
-  // Используем глобальный SERVICE_DESCS через getServiceDescription
   function kpDesc(name) { return getServiceDescription(name); }
 
-  // Строки появляются только если выбраны, галочка — только в колонке своего тарифа
-  const taxQualifies = ['ausn_dr','usn15','osno'].includes(A.tax);
-  // Дедупликация: убираем строки с одинаковым описанием (например товарный учёт из разных ниш)
+  const { taxQualifies } = kpData;
+  const visits = A.officeBuhPresence ? (A.officeBuhVisits || 4) : 1;
+  const priorityText = A.priorityManager === '15min'
+    ? 'Приоритетный ответ менеджера в течение 15 минут'
+    : 'Приоритетный ответ менеджера в течение рабочего дня';
+
+  // Дедупликация базовых услуг (без расчётного счёта — он идёт отдельно)
   const seenDescs = new Set();
   const dedupedLines = (baseLines || []).filter(l => {
+    if (l.name === 'Расчётный счёт') return false;
     const desc = kpDesc(l.name);
     if (seenDescs.has(desc)) return false;
     seenDescs.add(desc);
     return true;
   });
-  const baseCount = dedupedLines.length;
-  const svcRows = [
-    ...dedupedLines.map((l, i) => svcRow(kpDesc(l.name), true, true, true, i % 2 === 1)),
-    svcRow('Гарантированный приоритетный ответ менеджера в течение рабочего дня', false, !!A.priorityManager, !!A.priorityManager, baseCount % 2 === 0),
-    svcRow('Проведение консультаций по налогообложению, оптимизация налоговой нагрузки', false, !!(A.taxMgmt && taxQualifies), !!(A.taxMgmt && taxQualifies), baseCount % 2 === 1),
-    svcRow(A.officeBuh ? `Присутствие бухгалтера от компании (аутстаффинг) в офисе заказчика — ${(A.officeBuhDays||5)*4} рабочих дней в месяц` : 'Присутствие бухгалтера от компании (аутстаффинг) в офисе заказчика', false, !!A.officeBuh, !!A.officeBuh, baseCount % 2 === 0),
-    svcRow('Построение ОДДС и ОПиУ, расчёт и анализ ключевых показателей прибыльности компании', false, false, !!A.mgmtAcc, baseCount % 2 === 1),
-  ];
+
+  // Строим список услуг: base=входит в Базовый, std=Стандарт, opt=Оптима
+  const svcDefs = [
+    ...dedupedLines.map(l => ({ name: kpDesc(l.name), base: true, std: true, opt: true })),
+    { name: 'Ведение расчётного счёта', base: true, std: true, opt: true },
+    { name: priorityText, base: false, std: true, opt: true },
+    ...(taxQualifies ? [{ name: 'Проведение консультаций по налогообложению, оптимизация налоговой нагрузки', base: false, std: true, opt: true }] : []),
+    { name: `Присутствие бухгалтера от компании в офисе заказчика — ${visits} визит${visits === 1 ? '' : 'ов'} в месяц`, base: false, std: true, opt: true },
+    { name: 'Построение ОДДС и ОПиУ, расчёт и анализ ключевых показателей прибыльности компании', base: false, std: false, opt: true },
+  ].filter(r => r.base || r.std || r.opt);
+
+  const svcRows = svcDefs.map((r, i) => {
+    const bg = i % 2 === 1 ? STRIPE : WHITE;
+    return new TableRow({ children: [
+      cell(p(t(r.name, { size: 19 })), COL1, bg),
+      chk(r.base, COL_T, bg),
+      chk(r.std,  COL_T, bg),
+      chk(r.opt,  COL_T, bg),
+    ]});
+  });
 
   // Параграф-разделитель
   const gap = (sz = 100) => new Paragraph({ spacing: { before: 0, after: sz }, children: [] });
@@ -1496,6 +1528,14 @@ async function buildKPDocx(ex, client, kpData) {
             { size: 20 }
           )],
         }),
+        ...(A.startup ? [new Paragraph({
+          spacing: { before: 0, after: 60 },
+          children: [t(
+            'Так как компания находится в стадии становления или меняет направление деятельности, ' +
+            'первые два месяца обслуживания рассчитываются по факту выполненных услуг.',
+            { size: 20, italic: true }
+          )],
+        })] : []),
         new Paragraph({
           spacing: { before: 0, after: 200 },
           children: [t('Подробнее на сайте: buhstart.ru', { size: 20 })],
@@ -1634,30 +1674,24 @@ async function buildInvoiceDocx(ex, client, services, total, invNum) {
 
 /* ─── Юридические формулировки услуг для Приложения №1 ── */
 const SERVICE_DESCS = {
-  'Нулевая отчётность (ИП)': 'Подготовка и сдача отчётности ИП без оборотов, контроль оплаты фиксированных взносов ИП на социальное страхование',
+  // Нулевая — прайс строка 32, колонки A и F
+  'Нулевая отчётность (ИП)': 'Подготовка и сдача отчётности ИП без оборотов, контроль оплаты фиксированных взносов ИП на пенсионное и медицинское страхование',
   'Нулевая отчётность (ООО)': 'Подготовка и сдача отчётности юридического лица без оборотов, бухгалтерского баланса с отчётом о финансовых результатах, включая отчётность по физлицам, контроль оплаты взносов с МРОТ за руководителя',
   'Нулевая отчётность': 'Подготовка и сдача отчётности без оборотов, контроль оплаты фиксированных взносов',
-  'Маркетплейс РВБ (любой первый)': 'Загрузка документов из личного кабинета маркетплейсов, учёт продаж и комиссий',
-  'Wildberries': 'Загрузка документов из личного кабинета Wildberries, учёт продаж и комиссий',
-  'Ozon': 'Загрузка документов из личного кабинета Ozon, учёт продаж и комиссий',
-  'Яндекс Маркет': 'Загрузка документов из личного кабинета Яндекс Маркет, учёт продаж и комиссий',
-  'Товарный учёт': 'Учёт номенклатуры товаров, приходов и списаний, ведение складского учёта',
-  'в т.ч. товарный учёт': 'Учёт номенклатуры товаров, приходов и списаний, ведение складского учёта',
-  'Оптовая торговля': 'Товарно-складской учёт, ЭДО, сверки, контроль дебиторской задолженности',
-  'Розничная торговля': 'Товарно-складской учёт, ежедневная выручка по кассе, учёт розничных товаров',
-  'Производство': 'Учёт затрат и калькулирование себестоимости, учёт сырья и материалов',
-  'Строительство': 'Оформление первичных документов, пообъектный учёт затрат, учёт НЗП и взаиморасчётов с заказчиками и субподрядчиками',
-  'Общепит': 'Работа с технологическими картами и расчёт себестоимости, товарно-складской учёт',
-  'Медицина': 'Учёт материально-производственных запасов, медицинского оборудования, учёт расчётов с фондами ДМС, ОМС и пациентами',
-  'Услуги прочие': 'Создание и сбор счётов, договоров, актов выполненных услуг, УПД',
-  'ООО': 'Подготовка и сдача бухгалтерского баланса с отчётом о финансовых результатах, ведение учёта в соответствии с требованиями для юридических лиц',
-  'Патент': 'Учёт списаний и поступлений, подготовка книги по патенту, контроль оплаты налогов и взносов ИП на социальное страхование',
+  // ОСНО — прайс строка 32, колонка G (ООО); ИП — 3-НДФЛ вместо баланса
+  'ОСНО (ООО)': 'Подготовка и сдача бухгалтерского баланса с отчётом о финансовых результатах, учёт основных средств (ОС), нематериальных активов (НМА), учёт расчётов с контрагентами',
+  'ОСНО (ИП)': 'Учёт доходов и расходов, ввод первичной бухгалтерской документации, заполнение всех необходимых регистров бухгалтерского учёта, подготовка и сдача декларации 3-НДФЛ',
+  'ОСНО': 'Подготовка и сдача бухгалтерского баланса с отчётом о финансовых результатах, учёт основных средств (ОС), НМА, учёт расчётов с контрагентами',
+  // УСН — прайс строка 32, колонки K и L
+  'УСН 6%': 'Учёт доходов, подготовка и сдача уведомлений по УСН и декларации при УСН',
+  'УСН 15%': 'Учёт доходов и расходов, ввод первичной бухгалтерской документации, подготовка и сдача уведомлений по УСН и декларации при УСН',
+  // АУСН — прайс строка 32, колонка J
+  'АУСН Доходы': 'Учёт доходов, контроль правильности отображения в личном кабинете АУСН начисления налога',
+  'АУСН Доходы-Расходы': 'Учёт доходов, контроль правильности отображения в личном кабинете АУСН начисления налога',
+  // Патент
+  'Патент': 'Учёт доходов, подготовка книги учёта доходов, контроль оплаты налогов и взносов ИП на пенсионное и медицинское страхование',
   'Патент (доп.)': 'Подготовка книги учёта доходов по патенту, контроль сроков действия и своевременной оплаты патента',
-  'АУСН Доходы': 'Учёт списаний и поступлений, контроль правильности отображения в личном кабинете АУСН',
-  'АУСН Доходы-Расходы': 'Учёт списаний и поступлений, контроль правильности отображения в личном кабинете АУСН',
-  'УСН 6%': 'Учёт списаний и поступлений, подготовка и сдача уведомлений по УСН и декларации при УСН',
-  'УСН 15%': 'Учёт списаний и поступлений, ввод первичной бухгалтерской документации по доходам и расходам, подготовка и сдача деклараций при УСН',
-  'ОСНО': 'Подготовка и сдача бухгалтерского баланса с отчётом о финансовых результатах, учёт основных средств, НМА, учёт расчётов с контрагентами',
+  // НДС — прайс строка 32, колонки N и P
   'НДС не облагается': 'Подтверждение отсутствия обязанности по уплате НДС',
   'Освобождение от НДС (ст.145)': 'Подготовка уведомления об освобождении от НДС по статье 145 НК РФ',
   'НДС 0%': 'Подготовка и сдача декларации по НДС по ставке 0%',
@@ -1665,24 +1699,46 @@ const SERVICE_DESCS = {
   'НДС 7%': 'Подготовка и сдача декларации по НДС по ставке 7%',
   'НДС 10%': 'Подготовка и сдача декларации по НДС по ставке 10%',
   'НДС 22%': 'Подготовка и сдача декларации по НДС по ставке 22%',
-  'Сотрудники РФ (1–3 чел.)': 'Оформление приёмов, кадровых перемещений, отпусков, больничных листов, увольнений сотрудников, начисление и выплата заработной платы 1–3 сотрудникам, налогов с заработной платы, подготовка и сдача отчётности по физлицам',
+  // Зарплата — прайс строка 32, колонка S
+  'Сотрудники РФ (1–3 чел.)': 'Оформление приёмов, кадровых перемещений, отпусков, больничных листов, увольнений сотрудников, начисление и выплата заработной платы, налогов с заработной платы, подготовка и сдача отчётности по физлицам',
+  // Маркетплейсы — прайс строка 32, колонка R
+  'Маркетплейс РВБ (любой первый)': 'Загрузка документов из личного кабинета маркетплейсов, учёт продаж и комиссий',
+  'Wildberries': 'Загрузка документов из личного кабинета Wildberries, учёт продаж и комиссий',
+  'Ozon': 'Загрузка документов из личного кабинета Ozon, учёт продаж и комиссий',
+  'Яндекс Маркет': 'Загрузка документов из личного кабинета Яндекс Маркет, учёт продаж и комиссий',
+  // Виды деятельности — прайс строки 33–40
+  'Товарный учёт': 'Учёт номенклатуры товаров, приходов и списаний, ведение складского учёта',
+  'в т.ч. товарный учёт': 'Учёт номенклатуры товаров, приходов и списаний, ведение складского учёта',
+  'Оптовая торговля': 'Товарно-складской учёт',
+  'Розничная торговля': 'Товарно-складской учёт',
+  'Производство': 'Учёт затрат и калькулирование себестоимости, учёт сырья и материалов',
+  'Строительство': 'Оформление специальных первичных документов, учёт материалов, пообъектный учёт затрат, списание материалов по проектным нормам, учёт незавершённого производства (НЗП) и взаиморасчётов с заказчиками и субподрядчиками',
+  'Общепит': 'Работа с технологическими картами и расчёт себестоимости, товарно-складской учёт',
+  'Медицина': 'Учёт материально-производственных запасов (МПЗ), учёт медицинского оборудования, учёт расчётов с фондами ДМС, ОМС и пациентами',
+  'Услуги прочие': 'Создание и сбор счётов, договоров, актов выполненных услуг, УПД',
+  'ООО': 'Подготовка и сдача бухгалтерского баланса с отчётом о финансовых результатах, ведение учёта в соответствии с требованиями для юридических лиц',
+  // Дополнительные услуги — прайс строка 32
   'Касса (ККМ)': 'Сверка поступлений с ОФД, учёт наличных денежных средств, контроль кассового остатка',
   'Авансовые отчёты': 'Подготовка и загрузка авансовых отчётов от подотчётных лиц',
-  'ВЭД / Валютные расчёты': 'Учёт экспортных и импортных операций, подача таможенных деклараций',
+  'ВЭД / Валютные расчёты': 'Учёт экспортных и импортных операций',
   'Сверки с контрагентами': 'Подготовка и подписание актов сверки с поставщиками, подрядчиками, покупателями и заказчиками',
-  'Налоговый менеджмент': 'Проведение консультаций по налогообложению, оптимизация налоговой нагрузки',
-  'Воинский учёт': 'Постановка на воинский учёт, ведение документации и сдача отчётности',
-  'Лицензионная отчётность': 'Подготовка и сдача отчётности по лицензируемым видам деятельности',
-  'Управленческий учёт': 'Построение ОДДС и ОПиУ, расчёт и анализ ключевых показателей прибыльности компании, построение управленческого баланса и финансовой модели компании',
-  'Бухгалтер в офисе': 'Присутствие бухгалтера от компании (аутстаффинг) в офисе заказчика в течение рабочего дня',
-  'Приоритетная скорость ответа менеджера': 'Гарантированный приоритетный ответ менеджера в течение рабочего дня',
+  'Налоговый менеджмент': 'Проведение консультаций, оптимизация налогов',
+  'Воинский учёт': 'Воинский учёт',
+  'Лицензионная отчётность': 'Отчётность по лицензируемым видам деятельности',
+  // Пакетные услуги — прайс строки AA32, S33–S34, AE32
+  'Управленческий учёт': 'Построение ОДДС и ОПиУ, расчёт и анализ ключевых показателей прибыльности компании',
+  'Присутствие бухгалтера в офисе': 'Присутствие бухгалтера от компании в офисе заказчика',
+  'Ведение расчётного счёта': 'Загрузка выписок по расчётному счёту, обработка и разноска банковских операций, подготовка платёжных поручений',
+  'Приоритетный ответ менеджера': 'Приоритетный ответ менеджера',
   'СПОТ': 'Разовая обработка первичных документов вне рамок абонентского обслуживания',
 };
 
 function getServiceDescription(name) {
-  // Нулёвка зависит от типа организации
   if (name === 'Нулевая отчётность') {
     return A.entity === 'ООО' ? SERVICE_DESCS['Нулевая отчётность (ООО)'] : SERVICE_DESCS['Нулевая отчётность (ИП)'];
+  }
+  if (name === 'ОСНО') {
+    return A.entity === 'ООО' ? SERVICE_DESCS['ОСНО (ООО)'] : SERVICE_DESCS['ОСНО (ИП)'];
   }
   if (SERVICE_DESCS[name]) return SERVICE_DESCS[name];
   // Динамические названия с числами
@@ -1707,9 +1763,9 @@ function getServiceDescription(name) {
     const m = name.match(/(\d+) док/);
     return `Разовая обработка первичных документов вне рамок абонентского обслуживания (${m ? m[1] : 1} документов)`;
   }
-  if (name.startsWith('Бухгалтер в офисе')) {
-    const m = name.match(/(\d+) смен/);
-    return `Присутствие бухгалтера от компании (аутстаффинг) в офисе заказчика — ${m ? m[1] : 20} рабочих дней в месяц`;
+  if (name.startsWith('Присутствие бухгалтера')) {
+    const m = name.match(/(\d+) визит/);
+    return `Присутствие бухгалтера от компании в офисе заказчика — ${m ? m[1] : 4} визитов в месяц`;
   }
   return name;
 }
