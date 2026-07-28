@@ -301,13 +301,11 @@ function calcTotal() {
     { name: 'Приоритетный ответ менеджера', selected: true, price: markup(_minPriority), detail: '+20% от базы' },
     ...(taxQualifies ? [{ name: 'Налоговый менеджмент', selected: true, price: markup(_minTaxMgmt) }] : []),
     { name: `Присутствие бухгалтера в офисе (${visits} визитов/мес.)`, selected: true, price: markup(_minOfficeBuh) },
-    { name: 'Расчётный счёт (Стандарт)', selected: true, price: P.invoice.std - P.invoice.base },
   ];
 
   // Строки Оптима
   const optimaLines = [
     { name: 'Управленческий учёт', price: markup(OPTIMA_BASE_PRICE), selected: true },
-    { name: 'Расчётный счёт (Оптима)', selected: true, price: P.invoice.opt - P.invoice.std },
   ];
 
   return {
@@ -743,13 +741,14 @@ function buildSummary() {
   if (stdBlock) stdBlock.style.display = 'block';
   if (stdEl) {
     const stdDiscAmt = res.standardRaw - res.standardTotal;
-    const baseLine = `<div class="sum-line"><span class="sum-line-name">Базовая</span><span class="sum-line-price">${fmt(res.baseRaw)}</span></div>`;
+    const baseLine = `<div class="sum-line"><span class="sum-line-name">Базовая (без расч. счёта)</span><span class="sum-line-price">${fmt(res.baseRaw - P.invoice.base)}</span></div>`;
+    const invStdLine = `<div class="sum-line"><span class="sum-line-name">Расчётный счёт</span><span class="sum-line-price">${fmt(P.invoice.std)}</span></div>`;
     stdEl.innerHTML = baseLine + stdSelected.map(l =>
       `<div class="sum-line">
         <span class="sum-line-name">${esc(l.name)}</span>
         ${l.price ? `<span class="sum-line-price">+${fmt(l.price)}</span>` : ''}
       </div>`
-    ).join('') + (disc > 0 ? `<div class="sum-modifier"><span>Скидка</span><span>−${fmt(stdDiscAmt)}</span></div>` : '');
+    ).join('') + invStdLine + (disc > 0 ? `<div class="sum-modifier"><span>Скидка</span><span>−${fmt(stdDiscAmt)}</span></div>` : '');
     const stdTotalEl = document.getElementById('sum-total-standard');
     if (stdTotalEl) stdTotalEl.textContent = fmt(res.standardTotal) + '/мес';
   }
@@ -761,13 +760,14 @@ function buildSummary() {
   if (optBlock) optBlock.style.display = 'block';
   if (optEl) {
     const optDiscAmt = res.optimaRaw - res.optimaTotal;
-    const stdLine = `<div class="sum-line"><span class="sum-line-name">Стандарт</span><span class="sum-line-price">${fmt(res.standardRaw)}</span></div>`;
+    const stdLine = `<div class="sum-line"><span class="sum-line-name">Стандарт (без расч. счёта)</span><span class="sum-line-price">${fmt(res.standardRaw - P.invoice.std)}</span></div>`;
+    const invOptLine = `<div class="sum-line"><span class="sum-line-name">Расчётный счёт</span><span class="sum-line-price">${fmt(P.invoice.opt)}</span></div>`;
     optEl.innerHTML = stdLine + optSelected.map(l =>
       `<div class="sum-line">
         <span class="sum-line-name">${esc(l.name)}</span>
         ${l.price ? `<span class="sum-line-price">+${fmt(l.price)}</span>` : ''}
       </div>`
-    ).join('') + (disc > 0 ? `<div class="sum-modifier"><span>Скидка</span><span>−${fmt(optDiscAmt)}</span></div>` : '');
+    ).join('') + invOptLine + (disc > 0 ? `<div class="sum-modifier"><span>Скидка</span><span>−${fmt(optDiscAmt)}</span></div>` : '');
     const optTotalEl = document.getElementById('sum-total-optima');
     if (optTotalEl) optTotalEl.textContent = fmt(res.optimaTotal) + '/мес';
   }
