@@ -270,30 +270,25 @@ function calcTotal() {
     if (A.spot)     { const pr = (A.spotCount||1) * 1000; baseLines.push({ name:`СПОТ (${A.spotCount||1} dok.)`, price: pr }); _minBase += pr; }
   }
 
-  // Расчётный счёт — всегда в каждом пакете
-  baseLines.push({ name:'Расчётный счёт', price: P.invoice.base });
-
   const disc = Number(A.discount) || 0;
   const taxQualifies = ['ausn_dr','usn15','osno'].includes(A.tax);
 
-  // Минимальные цены пакетов
+  // Минимальные цены пакетов (без расчётного счёта — он добавляется после наценки как итоговая цена)
   const _minPriority  = Math.round(_minBase * 0.2); // 20% от базы без счёта
   const _minTaxMgmt   = taxQualifies ? P.tax_mgmt : 0;
   const visits        = A.officeBuhPresence ? (A.officeBuhVisits || 4) : 1;
   const _minOfficeBuh = visits * 7500;
 
-  // Базовый = client selections + счёт 8000
-  const _minBaseTotal = _minBase + P.invoice.base;
-  // Стандарт = базовый (со счётом 10000 вместо 8000) + приоритет + налогМгмт + офис
-  const _minStd = _minBase + P.invoice.std + _minPriority + _minTaxMgmt + _minOfficeBuh;
-  // Оптима = Стандарт (со счётом 15000) + управленческий учёт
-  const _minOpt = _minBase + P.invoice.opt + _minPriority + _minTaxMgmt + _minOfficeBuh + OPTIMA_BASE_PRICE;
-
   // Применяем наценку 1/0.8 (цены прайса — минимальные; max скидка 20%)
   function markup(n) { return Math.round(n / 0.8 / 100) * 100; }
-  const baseRaw     = markup(_minBaseTotal);
-  const standardRaw = markup(_minStd);
-  const optimaRaw   = markup(_minOpt);
+
+  // Расчётный счёт — итоговые цены (без наценки), добавляются после markup
+  const baseRaw     = markup(_minBase)     + P.invoice.base;
+  const standardRaw = markup(_minBase + _minPriority + _minTaxMgmt + _minOfficeBuh) + P.invoice.std;
+  const optimaRaw   = markup(_minBase + _minPriority + _minTaxMgmt + _minOfficeBuh + OPTIMA_BASE_PRICE) + P.invoice.opt;
+
+  // Расчётный счёт добавляем в baseLines для отображения (уже итоговая цена)
+  baseLines.push({ name:'Расчётный счёт', price: P.invoice.base });
 
   // Применяем скидку
   function applyDisc(raw) { return Math.round(raw * (1 - disc / 100) / 100) * 100; }
