@@ -1433,11 +1433,11 @@ async function buildKPDocx(ex, client, kpData) {
   const svcDefs = [
     ...dedupedLines.map(l => ({ name: kpDesc(l.name), base: true, std: true, opt: true })),
     { name: 'Работа с расчётным счётом', base: true, std: true, opt: true },
-    { name: 'Работа с платёжными поручениями', base: false, std: false, opt: true },
     { name: priorityText, base: false, std: true, opt: true },
     ...(taxQualifies ? [{ name: 'Проведение консультаций по налогообложению, оптимизация налоговой нагрузки', base: false, std: true, opt: true }] : []),
     { name: `Присутствие бухгалтера от компании в офисе заказчика — ${visits} визит${visits === 1 ? '' : 'ов'} в месяц`, base: false, std: true, opt: true },
     { name: 'Построение ОДДС и ОПиУ, расчёт и анализ ключевых показателей прибыльности компании', base: false, std: false, opt: true },
+    { name: 'Работа с платёжными поручениями', base: false, std: false, opt: true },
   ].filter(r => r.base || r.std || r.opt);
 
   const svcRows = svcDefs.map((r, i) => {
