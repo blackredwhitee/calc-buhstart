@@ -316,7 +316,7 @@ function calcTotal() {
     standardRaw, standardLines, standardTotal,
     optimaRaw, optimaLines, optimaTotal,
     disc, taxQualifies,
-    _minBase, _minStd, _minOpt,
+    _minBase,
   };
 }
 
@@ -1391,7 +1391,7 @@ async function buildKPDocx(ex, client, kpData) {
   const visits = A.officeBuhPresence ? (A.officeBuhVisits || 4) : 1;
   const priorityText = A.priorityManager === '15min'
     ? 'Приоритетный ответ менеджера в течение 15 минут'
-    : 'Приоритетный ответ менеджера в течение рабочего дня';
+    : 'Приоритетный ответ менеджера';
 
   // Дедупликация базовых услуг (без расчётного счёта — он идёт отдельно)
   const seenDescs = new Set();
