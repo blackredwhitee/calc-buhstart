@@ -204,7 +204,7 @@ const P = {
   staff: { none:0, rf_1_3:5000, rf_per:1500, foreign:20000 },
   cash:  { none:0, kassa:15000, avans:10000 },
   ved:8000, reconcile:15000, tax_mgmt:20000,
-  military_per:2000, licenses:10000,
+  military_per:2000, licenses:10000, spot:1000,
   invoice:{ base:8000, std:10000, opt:15000 },
 };
 
@@ -269,7 +269,7 @@ function calcTotal() {
     if (A.reconcile) addLine('Сверки с контрагентами', P.reconcile);
     if (A.military)  addLine(`Воинский учёт (${A.militaryCount} чел.)`, P.military_per * A.militaryCount);
     if (A.licenses)  addLine(`Лицензионная отчётность (${A.licenseCount||1} лиц.)`, P.licenses * (A.licenseCount||1));
-    if (A.spot)      addLine(`СПОТ (${A.spotCount||1} dok.)`, (A.spotCount||1) * 1000);
+    if (A.spot)      addLine(`СПОТ (${A.spotCount||1} dok.)`, (A.spotCount||1) * P.spot);
   }
 
   const disc = Number(A.discount) || 0;
