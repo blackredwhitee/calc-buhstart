@@ -301,13 +301,13 @@ function calcTotal() {
     { name: 'Приоритетный ответ менеджера', selected: true, price: markup(_minPriority), detail: '+20% от базы' },
     ...(taxQualifies ? [{ name: 'Налоговый менеджмент', selected: true, price: markup(_minTaxMgmt) }] : []),
     { name: `Присутствие бухгалтера в офисе (${visits} визитов/мес.)`, selected: true, price: markup(_minOfficeBuh) },
-    { name: 'Расчётный счёт (Стандарт)', selected: true, price: markup(P.invoice.std - P.invoice.base) },
+    { name: 'Расчётный счёт (Стандарт)', selected: true, price: P.invoice.std - P.invoice.base },
   ];
 
   // Строки Оптима
   const optimaLines = [
     { name: 'Управленческий учёт', price: markup(OPTIMA_BASE_PRICE), selected: true },
-    { name: 'Расчётный счёт (Оптима)', selected: true, price: markup(P.invoice.opt - P.invoice.std) },
+    { name: 'Расчётный счёт (Оптима)', selected: true, price: P.invoice.opt - P.invoice.std },
   ];
 
   return {
