@@ -568,6 +568,7 @@
       <div class="kp-summary-meta">
         <div class="kp-summary-meta-row"><span class="kp-summary-meta-label">Клиент</span><span id="kp-summary-client">—</span></div>
         <div class="kp-summary-meta-row"><span class="kp-summary-meta-label">КП действует до</span><span id="kp-summary-valid">—</span></div>
+        <div class="kp-summary-meta-row" id="kp-disc-row" style="display:none"><span class="kp-summary-meta-label">Скидка</span><span id="kp-summary-disc" style="color:#E35611;font-weight:600">—</span></div>
       </div>
       <div class="kp-breakdown" id="kp-breakdown" style="display:none">
         <div class="kp-breakdown-title">Состав стоимости</div>
@@ -579,6 +580,9 @@
         <button class="btn btn-accent btn-xl" onclick="generateContract()">Сформировать оферту →</button>
         <button class="btn btn-accent btn-xl" onclick="openReqModal('invoice')">Выставить счёт →</button>
         <button class="btn btn-ghost btn-xl" onclick="showFinal()">Завершить без документов</button>
+      </div>
+      <div style="margin-top:16px;text-align:center">
+        <button class="btn btn-ghost" onclick="backToFinalStep()">← Изменить скидку или юрлицо</button>
       </div>
     </div>
   </div>
