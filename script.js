@@ -751,8 +751,9 @@ function buildSummary() {
   if (stdBlock) stdBlock.style.display = 'block';
   if (stdEl) {
     const stdDiscAmt = res.standardRaw - res.standardTotal;
-    const baseLine = `<div class="sum-line"><span class="sum-line-name">Базовая</span><span class="sum-line-price">${fmt(res.baseWithoutInvoice)}</span></div>`;
-    const invStdLine = `<div class="sum-line"><span class="sum-line-name">Расчётный счёт</span><span class="sum-line-price">${fmt(markup(P.invoice.std))}</span></div>`;
+    const baseLine = `<div class="sum-line"><span class="sum-line-name">Базовая</span><span class="sum-line-price">${fmt(res.baseRaw)}</span></div>`;
+    const invDelta = markup(P.invoice.std) - markup(P.invoice.base);
+    const invStdLine = `<div class="sum-line"><span class="sum-line-name">Расчётный счёт ↑ Стандарт</span><span class="sum-line-price">+${fmt(invDelta)}</span></div>`;
     stdEl.innerHTML = baseLine + stdSelected.map(l =>
       `<div class="sum-line">
         <span class="sum-line-name">${esc(l.name)}</span>
@@ -770,8 +771,9 @@ function buildSummary() {
   if (optBlock) optBlock.style.display = 'block';
   if (optEl) {
     const optDiscAmt = res.optimaRaw - res.optimaTotal;
-    const stdLine = `<div class="sum-line"><span class="sum-line-name">Стандарт</span><span class="sum-line-price">${fmt(res.standardRaw - markup(P.invoice.std))}</span></div>`;
-    const invOptLine = `<div class="sum-line"><span class="sum-line-name">Расчётный счёт</span><span class="sum-line-price">${fmt(markup(P.invoice.opt))}</span></div>`;
+    const stdLine = `<div class="sum-line"><span class="sum-line-name">Стандарт</span><span class="sum-line-price">${fmt(res.standardRaw)}</span></div>`;
+    const invOptDelta = markup(P.invoice.opt) - markup(P.invoice.std);
+    const invOptLine = `<div class="sum-line"><span class="sum-line-name">Расчётный счёт ↑ Оптима</span><span class="sum-line-price">+${fmt(invOptDelta)}</span></div>`;
     optEl.innerHTML = stdLine + optSelected.map(l =>
       `<div class="sum-line">
         <span class="sum-line-name">${esc(l.name)}</span>
@@ -840,18 +842,17 @@ function generateKP() {
   // Стандарт — всегда включает приоритет, налог.менеджмент (если квалифицируется), присутствие бухгалтера
   const taxQual2 = ['ausn_dr','usn15','osno'].includes(A.tax);
   const visits2 = A.officeBuhPresence ? (A.officeBuhVisits || 4) : 1;
-  const stdLines = [['Базовая', baseWithoutInvoice, null]];
+  const stdLines = [['Базовая', baseRaw, null]];
   standardLines.forEach(l => stdLines.push([l.name, l.price, l.detail || null]));
-  stdLines.push(['Расчётный счёт (Стандарт)', markup(P.invoice.std), null]);
+  stdLines.push(['Расчётный счёт ↑ Стандарт', markup(P.invoice.std) - markup(P.invoice.base), null]);
   const stdRaw2 = discNum > 0 ? Math.round(standardTotal / (1 - discNum / 100)) : standardTotal;
   const stdDiscAmt2 = stdRaw2 - standardTotal;
   bdHtml += bdBlock('Стандарт', stdLines, stdRaw2, stdDiscAmt2, standardTotal);
 
-  // Оптима = Стандарт (без р/с) + управленческий учёт + р/с Оптима
-  const stdBaseForOpt = stdRaw2 - markup(P.invoice.std);
-  const optLines = [['Стандарт', stdBaseForOpt, null]];
+  // Оптима = полный Стандарт + управленческий учёт + доплата за р/с Оптима
+  const optLines = [['Стандарт', stdRaw2, null]];
   if (A.mgmtAcc) optLines.push(['Управленческий учёт', markup(OPTIMA_BASE_PRICE), null]);
-  optLines.push(['Расчётный счёт (Оптима)', markup(P.invoice.opt), null]);
+  optLines.push(['Расчётный счёт ↑ Оптима', markup(P.invoice.opt) - markup(P.invoice.std), null]);
   const optRaw2 = discNum > 0 ? Math.round(optimaTotal / (1 - discNum / 100)) : optimaTotal;
   const optDiscAmt2 = optRaw2 - optimaTotal;
   bdHtml += bdBlock('Оптима', optLines, optRaw2, optDiscAmt2, optimaTotal);
