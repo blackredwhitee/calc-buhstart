@@ -215,10 +215,12 @@ function calcTotal() {
   const baseLines = [];
   let _minBase = 0; // минимальная цена (из прайса)
 
+  function markup(n) { return Math.round(n / 0.8 / 100) * 100; }
+  function addLine(name, pr) { baseLines.push({ name, price: markup(pr) }); _minBase += pr; }
+
   if (A.isNull) {
     const price = A.entity === 'ИП' ? P.null_ip : P.null_ooo;
-    baseLines.push({ name:'Нулевая отчётность', price });
-    _minBase = price;
+    addLine('Нулевая отчётность', price);
   } else {
     const mpNames = { wb:'Wildberries', ozon:'Ozon', ya:'Яндекс Маркет' };
     const nicheNames = {
@@ -229,45 +231,43 @@ function calcTotal() {
     };
     A.niches.forEach(niche => {
       const pr = P.niche[niche] || 0;
-      if (pr) { baseLines.push({ name: nicheNames[niche]||niche, price: pr }); _minBase += pr; }
-      if (niche === 'wholesale' && A.whInventory) { baseLines.push({ name: 'в т.ч. товарный учёт', price: P.niche.wh_inventory }); _minBase += P.niche.wh_inventory; }
-      if (niche === 'retail'    && A.rtInventory) { baseLines.push({ name: 'в т.ч. товарный учёт', price: P.niche.rt_inventory }); _minBase += P.niche.rt_inventory; }
+      if (pr) addLine(nicheNames[niche]||niche, pr);
+      if (niche === 'wholesale' && A.whInventory) addLine('в т.ч. товарный учёт', P.niche.wh_inventory);
+      if (niche === 'retail'    && A.rtInventory) addLine('в т.ч. товарный учёт', P.niche.rt_inventory);
     });
 
     if (A.niches.includes('marketplace')) {
-      A.mp.forEach((m, i) => {
-        if (i > 0) { baseLines.push({ name: mpNames[m]||m, price: 5000 }); _minBase += 5000; }
-      });
-      if (A.mpInventory) { baseLines.push({ name:'Товарный учёт', price: P.niche.mp_inventory }); _minBase += P.niche.mp_inventory; }
+      A.mp.forEach((m, i) => { if (i > 0) addLine(mpNames[m]||m, 5000); });
+      if (A.mpInventory) addLine('Товарный учёт', P.niche.mp_inventory);
     }
 
-    if (A.entity === 'ООО') { baseLines.push({ name:'ООО', price: P.entity_ooo }); _minBase += P.entity_ooo; }
+    if (A.entity === 'ООО') addLine('ООО', P.entity_ooo);
 
     const taxNames = { patent:'Патент', ausn_d:'АУСН Доходы', ausn_dr:'АУСН Доходы-Расходы', usn6:'УСН 6%', usn15:'УСН 15%', osno:'ОСНО' };
     const taxPrice = P.tax[A.tax] || 0;
-    if (taxPrice) { baseLines.push({ name: taxNames[A.tax]||A.tax, price: taxPrice }); _minBase += taxPrice; }
-    if (A.addPatent && A.tax !== 'patent') { baseLines.push({ name:'Патент (доп.)', price: P.tax.patent }); _minBase += P.tax.patent; }
+    if (taxPrice) addLine(taxNames[A.tax]||A.tax, taxPrice);
+    if (A.addPatent && A.tax !== 'patent') addLine('Патент (доп.)', P.tax.patent);
 
     const vatNames = { не_облагается:'НДС не облагается', освобождение:'Освобождение от НДС (ст.145)', nds0:'НДС 0%', nds5:'НДС 5%', nds7:'НДС 7%', nds10:'НДС 10%', nds22:'НДС 22%' };
     (A.vats||[]).forEach(v => {
       const pr = P.vat[v] || 0;
-      if (pr) { baseLines.push({ name: vatNames[v]||v, price: pr }); _minBase += pr; }
-      else if (v === 'не_облагается' || v === 'nds0') { baseLines.push({ name: vatNames[v]||v, price: 0 }); }
+      if (pr) addLine(vatNames[v]||v, pr);
+      else if (v === 'не_облагается' || v === 'nds0') baseLines.push({ name: vatNames[v]||v, price: 0 });
     });
 
-    if (A.staffRf === 'rf_1_3') { baseLines.push({ name:'Сотрудники РФ (1–3 чел.)', price: P.staff.rf_1_3 }); _minBase += P.staff.rf_1_3; }
-    else if (A.staffRf === 'rf_more') { const pr = P.staff.rf_per * A.rfCount; baseLines.push({ name:`Сотрудники РФ (${A.rfCount} чел. × 1 500 ₽)`, price: pr }); _minBase += pr; }
+    if (A.staffRf === 'rf_1_3') addLine('Сотрудники РФ (1–3 чел.)', P.staff.rf_1_3);
+    else if (A.staffRf === 'rf_more') { const pr = P.staff.rf_per * A.rfCount; addLine(`Сотрудники РФ (${A.rfCount} чел.)`, pr); }
 
-    if (A.staffForeign === 'yes') { const pr = P.staff.foreign * A.foreignCount; baseLines.push({ name:`Иностранные сотрудники (${A.foreignCount} чел. × 20 000 ₽)`, price: pr }); _minBase += pr; }
+    if (A.staffForeign === 'yes') { const pr = P.staff.foreign * A.foreignCount; addLine(`Иностранные сотрудники (${A.foreignCount} чел.)`, pr); }
 
-    if (A.cashKassa) { baseLines.push({ name:'Касса (ККМ)', price: P.cash.kassa }); _minBase += P.cash.kassa; }
-    if (A.cashAvans) { baseLines.push({ name:'Авансовые отчёты', price: P.cash.avans }); _minBase += P.cash.avans; }
+    if (A.cashKassa) addLine('Касса (ККМ)', P.cash.kassa);
+    if (A.cashAvans) addLine('Авансовые отчёты', P.cash.avans);
 
-    if (A.ved)      { baseLines.push({ name:'ВЭД / Валютные расчёты', price: P.ved }); _minBase += P.ved; }
-    if (A.reconcile){ baseLines.push({ name:'Сверки с контрагентами', price: P.reconcile }); _minBase += P.reconcile; }
-    if (A.military) { const pr = P.military_per * A.militaryCount; baseLines.push({ name:`Воинский учёт (${A.militaryCount} чел. × 2 000 ₽)`, price: pr }); _minBase += pr; }
-    if (A.licenses) { const pr = P.licenses * (A.licenseCount||1); baseLines.push({ name:`Лицензионная отчётность (${A.licenseCount||1} лиц.)`, price: pr }); _minBase += pr; }
-    if (A.spot)     { const pr = (A.spotCount||1) * 1000; baseLines.push({ name:`СПОТ (${A.spotCount||1} dok.)`, price: pr }); _minBase += pr; }
+    if (A.ved)       addLine('ВЭД / Валютные расчёты', P.ved);
+    if (A.reconcile) addLine('Сверки с контрагентами', P.reconcile);
+    if (A.military)  addLine(`Воинский учёт (${A.militaryCount} чел.)`, P.military_per * A.militaryCount);
+    if (A.licenses)  addLine(`Лицензионная отчётность (${A.licenseCount||1} лиц.)`, P.licenses * (A.licenseCount||1));
+    if (A.spot)      addLine(`СПОТ (${A.spotCount||1} dok.)`, (A.spotCount||1) * 1000);
   }
 
   const disc = Number(A.discount) || 0;
@@ -279,11 +279,8 @@ function calcTotal() {
   const visits        = A.officeBuhPresence ? (A.officeBuhVisits || 4) : 1;
   const _minOfficeBuh = visits * 7500;
 
-  // Применяем наценку 1/0.8 (цены прайса — минимальные; max скидка 20%)
-  function markup(n) { return Math.round(n / 0.8 / 100) * 100; }
-
-  // Расчётный счёт — итоговые цены (без наценки), добавляются после markup
-  const baseRaw     = markup(_minBase)     + P.invoice.base;
+  // Расчётный счёт — итоговая цена (без наценки), добавляется отдельно
+  const baseRaw     = baseLines.reduce((s, l) => s + (l.price || 0), 0) + P.invoice.base;
   const standardRaw = markup(_minBase + _minPriority + _minTaxMgmt + _minOfficeBuh) + P.invoice.std;
   const optimaRaw   = markup(_minBase + _minPriority + _minTaxMgmt + _minOfficeBuh + OPTIMA_BASE_PRICE) + P.invoice.opt;
 
@@ -741,7 +738,7 @@ function buildSummary() {
   if (stdBlock) stdBlock.style.display = 'block';
   if (stdEl) {
     const stdDiscAmt = res.standardRaw - res.standardTotal;
-    const baseLine = `<div class="sum-line"><span class="sum-line-name">Базовая (без расч. счёта)</span><span class="sum-line-price">${fmt(res.baseRaw - P.invoice.base)}</span></div>`;
+    const baseLine = `<div class="sum-line"><span class="sum-line-name">Базовая</span><span class="sum-line-price">${fmt(res.baseRaw)}</span></div>`;
     const invStdLine = `<div class="sum-line"><span class="sum-line-name">Расчётный счёт</span><span class="sum-line-price">${fmt(P.invoice.std)}</span></div>`;
     stdEl.innerHTML = baseLine + stdSelected.map(l =>
       `<div class="sum-line">
@@ -760,7 +757,7 @@ function buildSummary() {
   if (optBlock) optBlock.style.display = 'block';
   if (optEl) {
     const optDiscAmt = res.optimaRaw - res.optimaTotal;
-    const stdLine = `<div class="sum-line"><span class="sum-line-name">Стандарт (без расч. счёта)</span><span class="sum-line-price">${fmt(res.standardRaw - P.invoice.std)}</span></div>`;
+    const stdLine = `<div class="sum-line"><span class="sum-line-name">Стандарт</span><span class="sum-line-price">${fmt(res.standardRaw)}</span></div>`;
     const invOptLine = `<div class="sum-line"><span class="sum-line-name">Расчётный счёт</span><span class="sum-line-price">${fmt(P.invoice.opt)}</span></div>`;
     optEl.innerHTML = stdLine + optSelected.map(l =>
       `<div class="sum-line">
