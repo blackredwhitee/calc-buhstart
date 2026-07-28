@@ -294,7 +294,7 @@ function calcTotal() {
   const baseWithoutInvoice = baseLines.reduce((s, l) => s + (l.price || 0), 0);
 
   // Расчётный счёт добавляем в baseLines для отображения (с наценкой)
-  baseLines.push({ name:'Расчётный счёт', price: mInvBase });
+  baseLines.push({ name:'Работа с расчётным счётом', price: mInvBase });
 
   const baseRaw     = baseWithoutInvoice + mInvBase;
   const standardRaw = baseWithoutInvoice + mPriority + mTaxMgmt + mOfficeBuh + mInvStd;
@@ -753,7 +753,7 @@ function buildSummary() {
     const stdDiscAmt = res.standardRaw - res.standardTotal;
     const baseLine = `<div class="sum-line"><span class="sum-line-name">Базовая</span><span class="sum-line-price">${fmt(res.baseRaw)}</span></div>`;
     const invDelta = markup(P.invoice.std) - markup(P.invoice.base);
-    const invStdLine = `<div class="sum-line"><span class="sum-line-name">Расчётный счёт (переход на Стандарт)</span><span class="sum-line-price">+${fmt(invDelta)}</span></div>`;
+    const invStdLine = `<div class="sum-line"><span class="sum-line-name">Работа с расчётным счётом</span><span class="sum-line-price">+${fmt(invDelta)}</span></div>`;
     stdEl.innerHTML = baseLine + stdSelected.map(l =>
       `<div class="sum-line">
         <span class="sum-line-name">${esc(l.name)}</span>
@@ -773,7 +773,7 @@ function buildSummary() {
     const optDiscAmt = res.optimaRaw - res.optimaTotal;
     const stdLine = `<div class="sum-line"><span class="sum-line-name">Стандарт</span><span class="sum-line-price">${fmt(res.standardRaw)}</span></div>`;
     const invOptDelta = markup(P.invoice.opt) - markup(P.invoice.std);
-    const invOptLine = `<div class="sum-line"><span class="sum-line-name">Расчётный счёт (переход на Оптиму)</span><span class="sum-line-price">+${fmt(invOptDelta)}</span></div>`;
+    const invOptLine = `<div class="sum-line"><span class="sum-line-name">Работа с расчётным счётом и платёжными поручениями</span><span class="sum-line-price">+${fmt(invOptDelta)}</span></div>`;
     optEl.innerHTML = stdLine + optSelected.map(l =>
       `<div class="sum-line">
         <span class="sum-line-name">${esc(l.name)}</span>
@@ -844,7 +844,7 @@ function generateKP() {
   const visits2 = A.officeBuhPresence ? (A.officeBuhVisits || 4) : 1;
   const stdLines = [['Базовая', baseRaw, null]];
   standardLines.forEach(l => stdLines.push([l.name, l.price, l.detail || null]));
-  stdLines.push(['Расчётный счёт (переход на Стандарт)', markup(P.invoice.std) - markup(P.invoice.base), null]);
+  stdLines.push(['Работа с расчётным счётом', markup(P.invoice.std) - markup(P.invoice.base), null]);
   const stdRaw2 = discNum > 0 ? Math.round(standardTotal / (1 - discNum / 100)) : standardTotal;
   const stdDiscAmt2 = stdRaw2 - standardTotal;
   bdHtml += bdBlock('Стандарт', stdLines, stdRaw2, stdDiscAmt2, standardTotal);
@@ -852,7 +852,7 @@ function generateKP() {
   // Оптима = полный Стандарт + управленческий учёт + доплата за р/с Оптима
   const optLines = [['Стандарт', stdRaw2, null]];
   if (A.mgmtAcc) optLines.push(['Управленческий учёт', markup(OPTIMA_BASE_PRICE), null]);
-  optLines.push(['Расчётный счёт (переход на Оптиму)', markup(P.invoice.opt) - markup(P.invoice.std), null]);
+  optLines.push(['Работа с расчётным счётом и платёжными поручениями', markup(P.invoice.opt) - markup(P.invoice.std), null]);
   const optRaw2 = discNum > 0 ? Math.round(optimaTotal / (1 - discNum / 100)) : optimaTotal;
   const optDiscAmt2 = optRaw2 - optimaTotal;
   bdHtml += bdBlock('Оптима', optLines, optRaw2, optDiscAmt2, optimaTotal);
@@ -1407,7 +1407,7 @@ async function buildKPDocx(ex, client, kpData) {
   // Дедупликация базовых услуг (без расчётного счёта — он идёт отдельно)
   const seenDescs = new Set();
   const dedupedLines = (baseLines || []).filter(l => {
-    if (l.name === 'Расчётный счёт') return false;
+    if (l.name === 'Работа с расчётным счётом') return false;
     const desc = kpDesc(l.name);
     if (seenDescs.has(desc)) return false;
     seenDescs.add(desc);
