@@ -876,6 +876,8 @@ function generateKP() {
   document.getElementById('kp-breakdown-lines').innerHTML = bdHtml;
   bdEl.style.display = 'block';
 
+  const kpNextEl = document.getElementById('kp-next-actions');
+  if (kpNextEl) kpNextEl.style.display = 'flex';
   const sec = document.getElementById('kp-sec');
   sec.style.display = 'block';
   document.getElementById('quiz-wrap').style.display = 'none';
@@ -890,6 +892,8 @@ function generateContract() {
 
   document.getElementById('contract-meta').textContent = todayLong();
   document.getElementById('contract-client').textContent = A.name || '—';
+  const kpNext = document.getElementById('kp-next-actions');
+  if (kpNext) kpNext.style.display = 'none';
   const sec = document.getElementById('contract-sec');
   sec.style.display = 'block';
   sec.scrollIntoView({ behavior:'smooth', block:'start' });
