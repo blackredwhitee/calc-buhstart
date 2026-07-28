@@ -1345,8 +1345,8 @@ async function buildKPDocx(ex, client, kpData) {
   // Блок итогов
   const discNum = Number(disc) || 0;
   const baseRaw2    = baseRaw || baseTotal;
-  const stdRaw      = discNum > 0 ? Math.round(standardTotal / (1 - discNum / 100)) : standardTotal;
-  const optRaw      = discNum > 0 ? Math.round(optimaTotal  / (1 - discNum / 100)) : optimaTotal;
+  const stdRaw      = discNum > 0 ? Math.round(standardTotal / (1 - discNum / 100) / 100) * 100 : standardTotal;
+  const optRaw      = discNum > 0 ? Math.round(optimaTotal  / (1 - discNum / 100) / 100) * 100 : optimaTotal;
   const baseDiscAmt = baseRaw2 - baseTotal;
   const stdDiscAmt  = stdRaw - standardTotal;
   const optDiscAmt  = optRaw - optimaTotal;
